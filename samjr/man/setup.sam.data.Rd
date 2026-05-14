@@ -44,6 +44,8 @@ setup.sam.data(
 \item{prop.m}{year-by-age proportion of M before spawning.}
 
 \item{land.frac}{year-by-age landing fraction.}
+
+\item{recapture}{reserved for future use; must be \code{NULL}.}
 }
 \value{
 a list of class \code{sam_data} containing fleet metadata

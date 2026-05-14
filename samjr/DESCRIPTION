@@ -1,6 +1,6 @@
 Package: samjr
 Type: Package
-Title: Minimal RTMB Re-implementation of SAM
+Title: Minimal RTMB Re-Implementation of SAM
 Version: 0.0.1
 Authors@R: person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut", "cre"))
 Description: Provides a small subset of the SAM stockassessment user interface

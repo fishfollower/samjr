@@ -109,6 +109,11 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
 ##'
 ##' @param fit a fitted \code{sam} object.
 ##' @param year,fleet vectors of years / fleets to drop (paired).
+##' @param map optional \code{map} list forwarded to \code{\link{sam.fit}};
+##' defaults to \code{fit$map}.
+##' @param lower,upper optional named numeric vectors of parameter bounds
+##' forwarded to \code{\link{sam.fit}}; default to \code{fit$low} and
+##' \code{fit$hig}.
 ##' @param ... extra arguments forwarded to \code{\link{sam.fit}}.
 ##' @return a new \code{sam} fit.
 ##' @export

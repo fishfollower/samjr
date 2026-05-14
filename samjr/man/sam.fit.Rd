@@ -25,6 +25,23 @@ modified).}
 
 \item{parameters}{parameter list from \code{\link{defpar}}.}
 
+\item{map}{optional named list passed to
+\code{\link[RTMB]{MakeADFun}} to fix or share parameters.}
+
+\item{rm.unidentified}{if \code{TRUE}, parameters flagged as
+unidentified by the configuration are mapped to \code{NA} and dropped
+from estimation.}
+
+\item{lower, upper}{optional named numeric vectors of lower / upper
+bounds on fixed-effect parameters, passed through to
+\code{\link[stats]{nlminb}}.}
+
+\item{newtonsteps}{number of post-optimisation Newton steps applied to
+polish the fit. Default 3.}
+
+\item{run}{if \code{FALSE}, return the prepared RTMB object without
+running the optimiser (useful for debugging).}
+
 \item{...}{currently ignored.}
 }
 \value{
@@ -57,10 +74,11 @@ retrospective analysis, forecast, reference points,
 multi-residual-fleet support, and one-step-ahead residuals.
 }
 \examples{
+\donttest{
 data(nscodData)
 data(nscodConf)
-data(nscodParameters)
-fit <- sam.fit(nscodData, nscodConf, nscodParameters)
+par <- defpar(nscodData, nscodConf)
+fit <- sam.fit(nscodData, nscodConf, par)
 fit$opt$objective
 
 opar <- par(mfrow = c(2, 2))
@@ -69,6 +87,7 @@ fbarplot(fit)
 recplot(fit)
 catchplot(fit)
 par(opar)
+}
 }
 \seealso{
 \code{\link{ssbplot}}, \code{\link{fbarplot}},

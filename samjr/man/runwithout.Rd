@@ -23,6 +23,13 @@ runwithout(fit, year, fleet, ...)
 \item{year, fleet}{vectors of years / fleets to drop (paired).}
 
 \item{...}{extra arguments forwarded to \code{\link{sam.fit}}.}
+
+\item{map}{optional \code{map} list forwarded to \code{\link{sam.fit}};
+defaults to \code{fit$map}.}
+
+\item{lower, upper}{optional named numeric vectors of parameter bounds
+forwarded to \code{\link{sam.fit}}; default to \code{fit$low} and
+\code{fit$hig}.}
 }
 \value{
 a new \code{sam} fit.

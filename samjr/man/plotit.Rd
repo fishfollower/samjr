@@ -80,6 +80,9 @@ plotit(fit, what, ...)
 \item{drop}{number of years at the right edge to omit.}
 
 \item{xlim, ylim}{optional axis ranges.}
+
+\item{unnamed.basename}{legend label used by the \code{samset} method for
+the base fit when the set has no \code{names()}.}
 }
 \value{
 invisibly a list with the plotted x, y and CI bands.

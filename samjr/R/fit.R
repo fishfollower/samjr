@@ -169,6 +169,18 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' @param conf configuration list from \code{\link{defcon}} (and possibly
 ##' modified).
 ##' @param parameters parameter list from \code{\link{defpar}}.
+##' @param map optional named list passed to
+##' \code{\link[RTMB]{MakeADFun}} to fix or share parameters.
+##' @param rm.unidentified if \code{TRUE}, parameters flagged as
+##' unidentified by the configuration are mapped to \code{NA} and dropped
+##' from estimation.
+##' @param lower,upper optional named numeric vectors of lower / upper
+##' bounds on fixed-effect parameters, passed through to
+##' \code{\link[stats]{nlminb}}.
+##' @param newtonsteps number of post-optimisation Newton steps applied to
+##' polish the fit. Default 3.
+##' @param run if \code{FALSE}, return the prepared RTMB object without
+##' running the optimiser (useful for debugging).
 ##' @param ... currently ignored.
 ##' @return an object of class \code{sam} with elements \code{data},
 ##' \code{conf}, \code{parameters}, the flattened \code{dat}, the RTMB
@@ -177,10 +189,11 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' @seealso \code{\link{ssbplot}}, \code{\link{fbarplot}},
 ##' \code{\link{recplot}}, \code{\link{catchplot}}.
 ##' @examples
+##' \donttest{
 ##' data(nscodData)
 ##' data(nscodConf)
-##' data(nscodParameters)
-##' fit <- sam.fit(nscodData, nscodConf, nscodParameters)
+##' par <- defpar(nscodData, nscodConf)
+##' fit <- sam.fit(nscodData, nscodConf, par)
 ##' fit$opt$objective
 ##'
 ##' opar <- par(mfrow = c(2, 2))
@@ -189,6 +202,7 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' recplot(fit)
 ##' catchplot(fit)
 ##' par(opar)
+##' }
 ##' @export
 sam.fit <- function(data, conf, parameters, map = list(),
                     rm.unidentified = FALSE, lower = NULL, upper = NULL,

@@ -13,8 +13,30 @@
 ##' @import RTMB
 ##' @import Matrix
 ##' @importFrom methods as
-##' @importFrom stats nlminb complete.cases median quantile rnorm
-##' @importFrom utils read.table
+##' @importFrom stats nlminb complete.cases median quantile rnorm na.omit
+##' @importFrom utils read.table capture.output
 ##' @importFrom graphics lines points polygon grid par
-##' @importFrom grDevices gray
+##' @importFrom grDevices gray rgb
 "_PACKAGE"
+
+## RTMB exposes the entries of the parameter / data list as bare names inside
+## the likelihood closure - the static analyser in R CMD check cannot see
+## that, so register them here.
+utils::globalVariables(c(
+  "PF", "PM", "Wc", "Wd", "Wp", "age", "aux", "bhpar",
+  "catchWeightModel", "corList", "covType", "cwNobs", "fbarIdx", "fcormode",
+  "fixVarToWeight", "fleetDim", "fleetTypes", "idxCor", "isTag", "itrans_rho",
+  "keyCatchWeightMean", "keyCatchWeightObsVar", "keyF", "keyIGAR",
+  "keyMatureMean", "keyMortalityMean", "keyMortalityObsVar", "keyQ", "keyQpow",
+  "keySd", "keyStockWeightMean", "keyStockWeightObsVar", "keyVarFperState",
+  "logCW", "logF", "logIGARdist", "logN", "logNM", "logPhiCW", "logPhiMO",
+  "logPhiNM", "logPhiSW", "logQ", "logQpow", "logSW", "logScale",
+  "logSdLogCW", "logSdLogN", "logSdLogNM", "logSdLogObs", "logSdLogSW",
+  "logSdMO", "logSdProcLogCW", "logSdProcLogNM", "logSdProcLogSW",
+  "logSdProcLogitMO", "logXtraSd", "logitMO", "logitRecapturePhi",
+  "logitReleaseSurvival", "logsdF", "matureModel", "meanLogCW", "meanLogNM",
+  "meanLogSW", "meanLogitMO", "minAge", "minYear", "moNobs", "mortalityModel",
+  "nmNobs", "parUS", "predVarObs", "predVarObsLink", "rickerpar",
+  "sampleTimes", "scaleIdxByObs", "srmode", "stockWeightModel", "swNobs",
+  "tagNscan", "tagR", "tagTypeIdx", "weight", "xtraSdIdxByObs", "year"
+))

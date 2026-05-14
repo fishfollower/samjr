@@ -40,7 +40,7 @@ build: doc
 	$(R) CMD build $(PKGDIR)
 
 check: build
-	$(R) CMD check --as-cran $(TARBALL)
+	_R_CHECK_SYSTEM_CLOCK_=FALSE $(R) CMD check --as-cran $(TARBALL)
 
 data: install
 	cd $(PKGDIR) && $(R) --quiet --no-save -f tools/build-nscod-data.R

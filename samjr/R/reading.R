@@ -266,6 +266,7 @@ read.data.files <- function(dir = "."){
 ##' @param prop.f year-by-age proportion of F before spawning.
 ##' @param prop.m year-by-age proportion of M before spawning.
 ##' @param land.frac year-by-age landing fraction.
+##' @param recapture reserved for future use; must be \code{NULL}.
 ##' @return a list of class \code{sam_data} containing fleet metadata
 ##' (\code{fleetTypes}, \code{sampleTimes}, \code{minAgePerFleet},
 ##' \code{maxAgePerFleet}), the observation table (\code{aux}, \code{logobs},

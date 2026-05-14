@@ -50,20 +50,6 @@
 ##' @export
 forecast <- function(fit, ...) UseMethod("forecast")
 
-##' Internal: re-run the inner Laplace approximation with the GMRF
-##' biology process matrices extended by \code{ns} extra rows beyond the
-##' fit's existing spin-out window. Pushes the GMRF boundary \code{ns} rows
-##' past the forecast horizon so smoothed values for the forecast years are
-##' not pulled by edge effects (mirrors SAM's
-##' \code{forecast.R::if(useSWmodel)\{...MakeADFun...sdreport...\}} block).
-##'
-##' Returns a parList-shaped list with the (extended) smoothed latent
-##' matrices. The fixed effects are held at \code{fit$opt$par}; only the
-##' random effects (logSW, logCW, logitMO, logNM, plus the original
-##' \code{logN}, \code{logF}, \code{missing}) are re-optimised by the
-##' inner Laplace step.
-##' @keywords internal
-##' @noRd
 ##' Internal: extract a parList-shaped list from a samjr fit using the
 ##' parameter NAMES in \code{last.par.best} rather than positional unpacking.
 ##' RTMB's \code{parList(vec)} indexes its input by lfixed positions, which
@@ -93,6 +79,20 @@ samRmvnorm <- function(n, mu, Sigma){
   X %*% L + matrix(mu, n, p, byrow = TRUE)
 }
 
+##' Internal: re-run the inner Laplace approximation with the GMRF
+##' biology process matrices extended by \code{ns} extra rows beyond the
+##' fit's existing spin-out window. Pushes the GMRF boundary \code{ns} rows
+##' past the forecast horizon so smoothed values for the forecast years are
+##' not pulled by edge effects (mirrors SAM's
+##' \code{forecast.R::if(useSWmodel)\{...MakeADFun...sdreport...\}} block).
+##'
+##' Returns a parList-shaped list with the (extended) smoothed latent
+##' matrices. The fixed effects are held at \code{fit$opt$par}; only the
+##' random effects (logSW, logCW, logitMO, logNM, plus the original
+##' \code{logN}, \code{logF}, \code{missing}) are re-optimised by the
+##' inner Laplace step.
+##' @keywords internal
+##' @noRd
 extendForBoundary <- function(fit, ns){
   oldPl <- fitParList(fit)
   active <- list(SW = fit$conf$stockWeightModel >= 1,

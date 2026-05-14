@@ -11,6 +11,11 @@ defpar(data, conf, spinoutyear = 10)
 
 \item{conf}{configuration list as returned by \code{\link{defcon}}
 (and possibly modified).}
+
+\item{spinoutyear}{number of extra years to append to the GMRF biology
+process matrices (\code{logSW}, \code{logCW}, \code{logitMO},
+\code{logNM}) beyond the data span, to allow for projection / spin-out.
+Default 10.}
 }
 \value{
 a named list of initial values for all model parameters and

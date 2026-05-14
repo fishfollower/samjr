@@ -17,6 +17,8 @@
 ##' @param cicol colour for the confidence polygon.
 ##' @param drop number of years at the right edge to omit.
 ##' @param xlim,ylim optional axis ranges.
+##' @param unnamed.basename legend label used by the \code{samset} method for
+##' the base fit when the set has no \code{names()}.
 ##' @param ... further arguments passed to \code{plot}/\code{lines}.
 ##' @return invisibly a list with the plotted x, y and CI bands.
 ##' @export
