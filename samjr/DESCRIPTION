@@ -1,0 +1,16 @@
+Package: samjr
+Type: Package
+Title: Minimal RTMB Re-implementation of SAM
+Version: 0.0.1
+Authors@R: person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut", "cre"))
+Description: Provides a small subset of the SAM stockassessment user interface
+    (read.ices, setup.sam.data, defcon, defpar, sam.fit) backed by a pure-R
+    RTMB implementation of the state-space age-structured assessment model.
+    First version mirrors the workflow used in SAM/testmore/nscod/script.R.
+License: GPL-2
+Depends: RTMB
+Imports: Matrix, methods, stats, utils, graphics, grDevices
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.3
+Roxygen: list(markdown = FALSE)
