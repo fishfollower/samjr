@@ -114,8 +114,12 @@ is one of:
 * `srmode = 2`: Beverton-Holt, $R(S) = \alpha + \log S - \log(1 + e^{\beta} S)$.
 
 Process noise:
-$\varepsilon^{R}_y \sim \mathcal{N}(0, \sigma_R^2)$,
-$\varepsilon^{S}_{a,y} \sim \mathcal{N}(0, \sigma_S^2)$.
+
+```math
+\varepsilon^{R}_y \sim \mathcal{N}(0, \sigma_R^2),
+\qquad
+\varepsilon^{S}_{a,y} \sim \mathcal{N}(0, \sigma_S^2).
+```
 
 Fishing mortality is a multivariate random walk in log space,
 
