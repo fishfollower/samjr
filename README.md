@@ -95,16 +95,16 @@ $\log F_{a,y}$; observations are catches-at-age and survey indices.
 
 Numbers at age evolve as
 
-$$
+```math
 \log N_{a,y} =
 \begin{cases}
-  R(\mathrm{SSB}_{y-a}) + \varepsilon^{R}_y & a = 1 \\[4pt]
+  R(\mathrm{SSB}_{y-a}) + \varepsilon^{R}_y & a = 1 \\
   \log N_{a-1,\, y-1} - F_{a-1,\, y-1} - M_{a-1,\, y-1} + \varepsilon^{S}_{a,y}
-    & 1 < a < A \\[4pt]
-  \log\!\bigl(N_{A-1,\,y-1}\,e^{-Z_{A-1,y-1}} + N_{A,\,y-1}\,e^{-Z_{A,y-1}}\bigr) + \varepsilon^{S}_{A,y}
+    & 1 < a < A \\
+  \log(N_{A-1,\,y-1}\,e^{-Z_{A-1,y-1}} + N_{A,\,y-1}\,e^{-Z_{A,y-1}}) + \varepsilon^{S}_{A,y}
     & a = A \quad (\text{plus group})
 \end{cases}
-$$
+```
 
 with $Z_{a,y} = F_{a,y} + M_{a,y}$. The recruitment function $R(\cdot)$
 is one of:
@@ -119,11 +119,11 @@ $\varepsilon^{S}_{a,y} \sim \mathcal{N}(0, \sigma_S^2)$.
 
 Fishing mortality is a multivariate random walk in log space,
 
-$$
-\log F_y \;\sim\; \mathcal{N}\!\bigl(\log F_{y-1},\, \Sigma_F\bigr),
+```math
+\log F_y \;\sim\; \mathcal{N}(\log F_{y-1},\, \Sigma_F),
 \qquad
 [\Sigma_F]_{ij} = \sigma_{F,i}\,\sigma_{F,j}\,\rho_{ij},
-$$
+```
 
 with three options for the correlation structure
 $\rho_{ij}$ (`fcormode`):
@@ -139,25 +139,25 @@ log scale. Stacking the log observations for fleet $f$ in year $y$ into
 a vector $\log \widetilde{O}_{f,y} \in \mathbb{R}^{n_{f,y}}$ (one entry
 per sampled age), the observation model is
 
-$$
-\log \widetilde{O}_{f,y} \;\sim\; \mathcal{N}\!\bigl(\log O_{f,y},\, \Sigma_{f,y}\bigr),
-$$
+```math
+\log \widetilde{O}_{f,y} \;\sim\; \mathcal{N}(\log O_{f,y},\, \Sigma_{f,y}),
+```
 
 where $\log O_{f,y} \in \mathbb{R}^{n_{f,y}}$ is the vector of predicted
 log observations and $\Sigma_{f,y}$ is $n_{f,y} \times n_{f,y}$. The
 scalar prediction at age $a$ is
 
-$$
+```math
 [\log O_{f,y}]_a =
 \begin{cases}
   \log N_{a,y} + \log F_{a,y} - \log Z_{a,y} + \log(1 - e^{-Z_{a,y}})
-    & \text{catch (type 0)} \\[4pt]
+    & \text{catch (type 0)} \\
   \log Q_{a,f} + \log N_{a,y} - \tau_f Z_{a,y}
-    & \text{survey index (type 2)} \\[4pt]
+    & \text{survey index (type 2)} \\
   \log Q_f + \log \mathrm{SSB}_y
     & \text{biomass index (type 3)}
 \end{cases}
-$$
+```
 
 where $\tau_f$ is the survey sample time and $Q$ is the catchability.
 Biomass indices (type 3) carry no age dimension, so $\log O_{f,y}$ and
@@ -167,17 +167,17 @@ unstructured forms.
 
 ### Spawning stock biomass and catch in weight
 
-$$
+```math
 \mathrm{SSB}_y = \sum_a N_{a,y}\, \mathrm{SW}_{a,y}\, \mathrm{MO}_{a,y}
 \,e^{-\mathrm{PF}_{a,y} F_{a,y} - \mathrm{PM}_{a,y} M_{a,y}}
-$$
+```
 
-$$
+```math
 \mathrm{Catch}_y = \sum_a N_{a,y}\,\mathrm{CW}_{a,y}\,
-\frac{F_{a,y}}{Z_{a,y}}\bigl(1 - e^{-Z_{a,y}}\bigr)
+\frac{F_{a,y}}{Z_{a,y}}(1 - e^{-Z_{a,y}})
 \qquad
 \overline{F}_y = \frac{1}{|A_{\bar F}|} \sum_{a \in A_{\bar F}} F_{a,y}
-$$
+```
 
 ### Optional GMRF biology processes
 
@@ -186,10 +186,10 @@ $\mathrm{MO}$, and natural mortality $M$ can each be modelled as
 year-by-age Gaussian Markov random fields rather than treated as
 data. The latent matrix $X$ then has prior precision
 
-$$
+```math
 Q = I - \phi_{\text{cohort}} W_c - \phi_{\text{within-year}} W_d
 \quad (- \phi_{\text{between-year}} W_p),
-$$
+```
 
 with sparse band matrices $W_c, W_d, W_p$ encoding cohort, within-year,
 and between-year neighbours. Observations on positive-valued biology
