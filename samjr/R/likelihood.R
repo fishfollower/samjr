@@ -154,22 +154,21 @@ makeBabyLikelihood <- function(dat){
 
     ssb <- ssbFun(exp(logN), exp(logFF), M, SW, MO, PF, PM)
 
-    for(y in 2:nrow){
-      thisSSB <- ifelse((y - minAge - 1) > (-.5), ssb[y - minAge], ssb[1])
-      if(srmode == 0){
-        pred <- logN[y - 1, 1]
-      }
-      if(srmode == 1){
-        pred <- rickerpar[1] + log(thisSSB) - exp(rickerpar[2]) * thisSSB
-      }
-      if(srmode == 2){
-        pred <- bhpar[1] + log(thisSSB) - log(1.0 + exp(bhpar[2]) * thisSSB)
-      }
-      if(!(srmode %in% c(0, 1, 2))){
-        stop(paste("srmode", srmode, "not implemented"))
-      }
-      jnll <- jnll - dnorm(logN[y, 1], pred, sdR, log = TRUE)
+    yIdx <- 2:nrow
+    ssbLag <- ssb[pmax(yIdx - minAge, 1)]
+    if(srmode == 0){
+      pred <- logN[yIdx - 1, 1]
     }
+    if(srmode == 1){
+      pred <- rickerpar[1] + log(ssbLag) - exp(rickerpar[2]) * ssbLag
+    }
+    if(srmode == 2){
+      pred <- bhpar[1] + log(ssbLag) - log(1.0 + exp(bhpar[2]) * ssbLag)
+    }
+    if(!(srmode %in% c(0, 1, 2))){
+      stop(paste("srmode", srmode, "not implemented"))
+    }
+    jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
 
     for(y in 2:nrow){
       for(a in 2:ncol){
