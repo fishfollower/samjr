@@ -1,3 +1,66 @@
+##' Internal: build a tracer that records, optionally prints, and
+##' optionally live-plots negative log-likelihood and max absolute
+##' gradient at every gradient evaluation. Returns a list with
+##' \code{wrap(obj)} (yielding side-effecting fn/gr wrappers for
+##' \code{\link[stats]{nlminb}}) and \code{record(nll, g)} (used after
+##' Newton steps which operate on the unwrapped fn/gr).
+##' @keywords internal
+##' @noRd
+makeConvTracer <- function(silent = FALSE, convplot = FALSE){
+  if(silent && !convplot){
+    return(list(
+      record = function(nll, g) invisible(),
+      wrap   = function(obj) list(fn = obj$fn, gr = obj$gr)
+    ))
+  }
+  state <- new.env(parent = emptyenv())
+  state$nllHist   <- numeric(0)
+  state$maxgrHist <- numeric(0)
+  state$lastNll   <- NA_real_
+  record <- function(nll, g){
+    mg <- max(abs(as.numeric(g)))
+    state$nllHist   <- c(state$nllHist,   nll)
+    state$maxgrHist <- c(state$maxgrHist, mg)
+    if(!silent) cat(sprintf("nll=%-12.6g  |maxgr|=%.6g\n", nll, mg))
+    if(convplot) drawConvPlot(state$nllHist, state$maxgrHist)
+  }
+  wrap <- function(obj){
+    fn <- function(par){
+      v <- obj$fn(par)
+      state$lastNll <- v
+      v
+    }
+    gr <- function(par){
+      g <- obj$gr(par)
+      record(state$lastNll, g)
+      g
+    }
+    list(fn = fn, gr = gr)
+  }
+  list(record = record, wrap = wrap)
+}
+
+##' Internal: draw a two-axis convergence plot. Left y-axis: nll
+##' (linear). Right y-axis: \code{|maxgr|} on log10 scale. Called by
+##' \code{makeConvTracer} when \code{convplot = TRUE} in
+##' \code{\link{sam.fit}}; re-drawn from scratch on every update.
+##' @keywords internal
+##' @noRd
+drawConvPlot <- function(nllVec, maxgrVec){
+  n <- length(nllVec)
+  if(n < 1) return(invisible())
+  it <- seq_len(n)
+  opar <- par(mar = c(4, 4, 1, 4))
+  on.exit(par(opar))
+  plot(it, nllVec, type = "o", pch = 16, lwd = 2,
+       xlab = "Iteration", ylab = "nll", col = "black", las = 1)
+  par(new = TRUE)
+  plot(it, maxgrVec, type = "o", pch = 16, lwd = 2, col = "red",
+       log = "y", axes = FALSE, xlab = "", ylab = "")
+  axis(side = 4, col = "red", col.axis = "red", las = 1)
+  mtext("|maxgr|", side = 4, line = 2.5, col = "red")
+}
+
 ##' Internal: translate a (data, conf) pair into the flat \code{dat} list
 ##' consumed by the samjr RTMB likelihood.
 ##'
@@ -181,6 +244,12 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' polish the fit. Default 3.
 ##' @param run if \code{FALSE}, return the prepared RTMB object without
 ##' running the optimiser (useful for debugging).
+##' @param silent if \code{FALSE} (default), print the negative log
+##' likelihood and the maximum absolute gradient component on every
+##' iteration; set to \code{TRUE} to suppress.
+##' @param convplot if \code{TRUE}, live-update a two-axis convergence
+##' plot (left: nll, right: \code{|maxgr|} on log10 scale) on every
+##' iteration. \code{FALSE} by default.
 ##' @param ... currently ignored.
 ##' @return an object of class \code{sam} with elements \code{data},
 ##' \code{conf}, \code{parameters}, the flattened \code{dat}, the RTMB
@@ -206,7 +275,8 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' @export
 sam.fit <- function(data, conf, parameters, map = list(),
                     rm.unidentified = FALSE, lower = NULL, upper = NULL,
-                    newtonsteps = 3, run = TRUE, ...){
+                    newtonsteps = 3, run = TRUE, silent = FALSE,
+                    convplot = FALSE, ...){
   dat <- toBabyDat(data, conf)
   f <- makeBabyLikelihood(dat)
   nmissing <- sum(is.na(dat$logobs))
@@ -239,7 +309,9 @@ sam.fit <- function(data, conf, parameters, map = list(),
   }
   lowVec <- expandBounds(lower, -Inf)
   hiVec  <- expandBounds(upper,  Inf)
-  opt <- nlminb(obj$par, obj$fn, obj$gr,
+  tracer  <- makeConvTracer(silent = silent, convplot = convplot)
+  wrapped <- tracer$wrap(obj)
+  opt <- nlminb(obj$par, wrapped$fn, wrapped$gr,
                 lower = lowVec, upper = hiVec,
                 control = list(eval.max = 2000, iter.max = 2000,
                                rel.tol = 1e-10))
@@ -251,6 +323,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
     }, silent = TRUE)
     if(inherits(step, "try-error")) break
     opt$par <- opt$par - step
+    tracer$record(obj$fn(opt$par), obj$gr(opt$par))
   }
   opt$objective <- obj$fn(opt$par)
   sdr <- try(sdreport(obj, getJointPrecision = TRUE), silent = TRUE)

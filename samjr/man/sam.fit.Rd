@@ -14,6 +14,8 @@ sam.fit(
   upper = NULL,
   newtonsteps = 3,
   run = TRUE,
+  silent = FALSE,
+  convplot = FALSE,
   ...
 )
 }
@@ -41,6 +43,14 @@ polish the fit. Default 3.}
 
 \item{run}{if \code{FALSE}, return the prepared RTMB object without
 running the optimiser (useful for debugging).}
+
+\item{silent}{if \code{FALSE} (default), print the negative log
+likelihood and the maximum absolute gradient component on every
+iteration; set to \code{TRUE} to suppress.}
+
+\item{convplot}{if \code{TRUE}, live-update a two-axis convergence
+plot (left: nll, right: \code{|maxgr|} on log10 scale) on every
+iteration. \code{FALSE} by default.}
 
 \item{...}{currently ignored.}
 }

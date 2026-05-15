@@ -108,7 +108,7 @@ catchtable.sam <- function(fit, ...){
   ret <- adrepTable(fit, "logCatch")
   CW  <- fit$data$catchMeanWeight
   if(!is.null(CW)){
-    keep <- apply(!is.na(CW), 1, any)
+    keep <- !apply(is.na(CW), 1, any)
     ret  <- ret[keep, , drop = FALSE]
   }
   ret

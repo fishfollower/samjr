@@ -49,9 +49,12 @@ plotit.sam <- function(fit, what, x = fit$data$years, ylab = what, xlab = "Years
     lines(x, trans(y), lwd = 3, ...)
   }
   if(ci){
-    polygon(c(x, rev(x)),
-            c(trans(lowhig[, 1]), rev(trans(lowhig[, 2]))),
-            border = gray(.5, alpha = .5), col = cicol)
+    ok <- !is.na(lowhig[, 1]) & !is.na(lowhig[, 2])
+    if(any(ok)){
+      polygon(c(x[ok], rev(x[ok])),
+              c(trans(lowhig[ok, 1]), rev(trans(lowhig[ok, 2]))),
+              border = gray(.5, alpha = .5), col = cicol)
+    }
     lines(x, trans(y), lwd = 3, col = cicol)
     lines(x, trans(y), lwd = 2, col = "black", lty = "dotted")
   }
@@ -149,6 +152,15 @@ catchSOP <- function(fit){
 ##' @method catchplot sam
 ##' @export
 catchplot.sam <- function(fit, obs.show = TRUE, ...){
+  CW <- fit$data$catchMeanWeight
+  if(!is.null(CW)){
+    bad <- apply(is.na(CW), 1, any)
+    if(any(bad)){
+      idx <- which(names(fit$sdrep$value) == "logCatch")
+      fit$sdrep$value[idx[bad]] <- NA_real_
+      fit$sdrep$sd[idx[bad]]    <- NA_real_
+    }
+  }
   ret <- plotit(fit, "logCatch", ylab = "Catch", trans = exp, ...)
   if(obs.show){
     sop <- catchSOP(fit)
