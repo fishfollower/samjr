@@ -227,3 +227,191 @@ print.samcoef <- function(x, ...){
 nobs.sam <- function(object, ...){
   as.integer(object$data$nobs)
 }
+
+##' Concise markdown description of a fitted samjr model
+##'
+##' Walks \code{fit$data} and \code{fit$conf} to produce a short plain-text
+##' (markdown) description of the data, process model, observation model,
+##' catch scaling, fbar range, biology processes and basic fit statistics.
+##' The text is printed (\code{cat}) and returned invisibly as a single
+##' character vector.
+##' @param fit a fitted \code{sam} object from \code{\link{sam.fit}}.
+##' @return character vector with the markdown text (returned invisibly).
+##' @export
+modelDescription <- function(fit){
+  data <- fit$data; conf <- fit$conf
+  L <- character(0)
+  push <- function(x) L[length(L) + 1L] <<- x
+
+  fleetTypeName <- function(t) switch(as.character(t),
+    "0" = "residual catch (catch-at-age)",
+    "1" = "catch-at-age with effort",
+    "2" = "survey index (numbers at age)",
+    "3" = "biomass / catch index",
+    "5" = "tagging",
+    "6" = "alternative index",
+    "7" = "sum-of-fleets",
+    paste0("type ", t))
+
+  ## Group an age vector by its key and produce e.g. "{1-3},{4},{5-6}".
+  ## Entries with keyVec < 0 or NA are dropped.
+  groupAges <- function(ages, keyVec){
+    ok <- !is.na(keyVec) & keyVec >= 0
+    if(!any(ok)) return("(none)")
+    parts <- tapply(ages[ok], keyVec[ok], function(a){
+      a <- sort(unique(a))
+      if(length(a) == 1) return(as.character(a))
+      if(all(diff(a) == 1)) return(sprintf("%d-%d", min(a), max(a)))
+      paste(a, collapse = ",")
+    })
+    paste0("{", parts, "}", collapse = ", ")
+  }
+  yearRange <- function(yrs){
+    yrs <- sort(unique(yrs))
+    if(length(yrs) == 0) return("(no years)")
+    if(length(yrs) == (max(yrs) - min(yrs) + 1L))
+      sprintf("%d-%d", min(yrs), max(yrs))
+    else
+      sprintf("%d-%d (%d years, with gaps)",
+              min(yrs), max(yrs), length(yrs))
+  }
+
+  fnames <- attr(data, "fleetNames")
+  nF     <- data$noFleets
+  if(is.null(fnames)) fnames <- paste("Fleet", seq_len(nF))
+  ages   <- seq(conf$minAge, conf$maxAge)
+
+  ## Header + Data
+  push("## SAM model description")
+  push("")
+  push("### Data")
+  push(sprintf("- Years: %d-%d (%d years)",
+                min(data$years), max(data$years), length(data$years)))
+  push(sprintf("- Age range: %d-%d", conf$minAge, conf$maxAge))
+  push(sprintf("- Total observations: %d", length(data$logobs)))
+  push(sprintf("- Fleets (%d):", nF))
+  for(f in seq_len(nF)){
+    aMin <- data$minAgePerFleet[f]; aMax <- data$maxAgePerFleet[f]
+    aStr <- if(is.na(aMin) || aMin == -1) "(no age)"
+            else sprintf("ages %d-%d", aMin, aMax)
+    nobsF <- sum(data$aux[, "fleet"] == f)
+    yrs <- data$aux[data$aux[, "fleet"] == f, "year"]
+    push(sprintf("  %d. %s - %s, %s, years %s, %d obs",
+                  f, fnames[f], fleetTypeName(data$fleetTypes[f]),
+                  aStr, yearRange(yrs), nobsF))
+  }
+  push("")
+
+  ## Process model
+  push("### Process model")
+  srLab <- c("0" = "random walk on log-recruitment",
+             "1" = "Ricker", "2" = "Beverton-Holt")
+  srKey <- as.character(conf$stockRecruitmentModelCode)
+  push(sprintf("- Recruitment: %s",
+                if(srKey %in% names(srLab)) srLab[[srKey]]
+                else paste0("code ", srKey)))
+  kF <- conf$keyLogFsta[1, ]
+  nFstate <- length(unique(kF[kF >= 0]))
+  push(sprintf("- F at age: %d state%s, ages coupled as %s",
+                nFstate, if(nFstate == 1) "" else "s",
+                groupAges(ages, kF)))
+  corLab <- c("0" = "independent across ages",
+              "1" = "compound symmetry (single shared correlation)",
+              "2" = "AR(1)-like decay across ages")
+  cKey <- as.character(conf$corFlag[1])
+  push(sprintf("- F cross-age correlation: %s",
+                if(cKey %in% names(corLab)) corLab[[cKey]]
+                else paste0("code ", cKey)))
+  vF <- conf$keyVarF[1, ]
+  nVF <- length(unique(vF[vF >= 0]))
+  push(sprintf("- F process variance: %d sd parameter%s, ages coupled as %s",
+                nVF, if(nVF == 1) "" else "s",
+                groupAges(ages, vF)))
+  push("- N process: 2 sd parameters (recruitment, survival)")
+  push("")
+
+  ## Observation model
+  push("### Observation model")
+  vObs <- conf$keyVarObs
+  for(f in seq_len(nF)){
+    if(data$fleetTypes[f] == 5) next
+    str <- as.character(conf$obsCorStruct[f])
+    corStrLab <- switch(str,
+      "ID" = "independent across ages",
+      "AR" = "AR(1)/IGAR-style correlation across ages",
+      "US" = "unstructured correlation",
+      str)
+    rowSd <- vObs[f, ]
+    nSd   <- length(unique(rowSd[rowSd >= 0]))
+    push(sprintf("- %s: %s", fnames[f], corStrLab))
+    push(sprintf("  - sd: %d parameter%s, ages coupled as %s",
+                  nSd, if(nSd == 1) "" else "s",
+                  groupAges(ages, rowSd)))
+  }
+  push("")
+
+  ## Catchability
+  push("### Catchability (Q)")
+  surveyFleets <- which(data$fleetTypes %in% c(2, 3, 6))
+  if(length(surveyFleets) == 0){
+    push("- (none - no survey-style fleets)")
+  }else{
+    for(f in surveyFleets){
+      rowQ <- conf$keyLogFpar[f, ]
+      nQ <- length(unique(rowQ[rowQ >= 0]))
+      push(sprintf("- %s: %d logQ parameter%s, ages coupled as %s",
+                    fnames[f], nQ, if(nQ == 1) "" else "s",
+                    groupAges(ages, rowQ)))
+    }
+  }
+  push("")
+
+  ## Catch scaling
+  if(isTRUE(conf$noScaledYears > 0)){
+    push("### Catch scaling")
+    yr <- conf$keyScaledYears
+    push(sprintf("- %d scaled year(s): %s",
+                  conf$noScaledYears, yearRange(yr)))
+    keyMat <- conf$keyParScaledYA
+    nSc <- max(keyMat[keyMat >= 0], na.rm = TRUE) + 1L
+    push(sprintf("- %d distinct scaling parameter(s)", nSc))
+    push("")
+  }
+
+  ## Fbar range
+  push("### Fbar")
+  push(sprintf("- Averaged over ages %d-%d",
+                conf$fbarRange[1], conf$fbarRange[2]))
+  push("")
+
+  ## Biology processes
+  bioFlags <- c(stockWeight = conf$stockWeightModel,
+                catchWeight = conf$catchWeightModel,
+                maturity    = conf$matureModel,
+                mortality   = conf$mortalityModel)
+  push("### Biology processes")
+  for(nm in names(bioFlags)){
+    fl <- bioFlags[[nm]]
+    lab <- if(is.null(fl) || isTRUE(fl == 0)) "fixed (observed)"
+           else sprintf("smoothed (GMRF model %d)", as.integer(fl))
+    push(sprintf("- %s: %s", nm, lab))
+  }
+  push("")
+
+  ## Fit summary
+  push("### Fit summary")
+  nll  <- if(!is.null(fit$opt$objective)) fit$opt$objective else NA_real_
+  conv <- if(!is.null(fit$opt$convergence)) fit$opt$convergence else NA_integer_
+  np   <- length(fit$obj$par)
+  ll   <- tryCatch(as.numeric(logLik(fit)), error = function(e) NA_real_)
+  aic  <- tryCatch(AIC(fit),                error = function(e) NA_real_)
+  push(sprintf("- Negative log-likelihood: %.4f", nll))
+  push(sprintf("- log-likelihood: %.4f", ll))
+  push(sprintf("- Number of fixed-effect parameters: %d", np))
+  push(sprintf("- AIC: %.4f", aic))
+  push(sprintf("- Convergence code: %s (%s)", conv,
+                if(isTRUE(conv == 0)) "converged" else "see ?nlminb"))
+  txt <- paste(L, collapse = "\n")
+  cat(txt, "\n", sep = "")
+  invisible(txt)
+}
