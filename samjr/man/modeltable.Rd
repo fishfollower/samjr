@@ -3,12 +3,15 @@
 \name{modeltable}
 \alias{modeltable}
 \alias{modeltable.sam}
+\alias{modeltable.samset}
 \alias{modeltable.default}
 \title{Compare a set of fitted samjr models}
 \usage{
 modeltable(fits, ...)
 
 \method{modeltable}{sam}(fits, ...)
+
+\method{modeltable}{samset}(fits, ...)
 
 \method{modeltable}{default}(fits, ...)
 }

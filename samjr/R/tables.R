@@ -273,6 +273,16 @@ modeltable <- function(fits, ...) UseMethod("modeltable")
 modeltable.sam <- function(fits, ...) modeltable(c(fits))
 
 ##' @rdname modeltable
+##' @method modeltable samset
+##' @export
+modeltable.samset <- function(fits, ...){
+  ref <- attr(fits, "fit")
+  fits <- unclass(fits)
+  if(!is.null(ref)) fits <- c(list(ref), fits)
+  modeltable.default(fits, ...)
+}
+
+##' @rdname modeltable
 ##' @method modeltable default
 ##' @export
 modeltable.default <- function(fits, ...){
