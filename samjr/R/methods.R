@@ -120,20 +120,39 @@ print.samres <- function(x, ...){
 ##'
 ##' One panel per fleet; bubble area scales with the absolute value of
 ##' the residual; positive residuals plotted in blue, negative in red.
+##' Bubbles whose \code{|residual|} is closest to 1, 2, 3, ... are
+##' labelled in place with that integer in grey, so the figure carries
+##' its own size scale without a separate legend.
 ##' @param x a \code{samres} object.
 ##' @param bubblescale optional bubble-area scaling factor (default 1).
 ##' @param ... extra arguments passed to \code{plot}.
 ##' @method plot samres
-##' @importFrom graphics par plot points abline mtext text plot.new plot.window
+##' @importFrom graphics par plot points abline text
+##' @importFrom grDevices gray
 ##' @export
 plot.samres <- function(x, bubblescale = 1, ...){
   fleets <- sort(unique(x$fleet))
   fnames <- attr(x, "fleetNames")
   if(is.null(fnames)) fnames <- paste0("Fleet ", fleets)
-  oldpar <- par(mfrow = c(length(fleets) + 1, 1), mar = c(4, 4, 2, 1))
+  nf <- length(fleets)
+  oldpar <- par(mfrow = c(nf, 1), mar = c(4, 4, 2, 1))
   on.exit(par(oldpar))
-  maxAbs <- max(abs(x$residual), na.rm = TRUE)
+  ok <- which(x$age >= 0 & is.finite(x$residual))
+  absR <- abs(x$residual[ok])
+  maxAbs <- max(absR)
   scale <- bubblescale * 5 / sqrt(maxAbs)
+  ## For each integer k in 1..floor(maxAbs), pick (greedily, without
+  ## reuse) the observation whose |residual| is closest to k.
+  maxK <- min(floor(maxAbs), length(ok))
+  labelRows <- integer(maxK)
+  remaining <- absR
+  for(k in seq_len(maxK)){
+    i <- which.min(abs(remaining - k))
+    labelRows[k] <- ok[i]
+    remaining[i] <- NA
+  }
+  labelCex <- sqrt(4) * scale
+  labelCol <- gray(0.2, alpha = 0.55)
   for(ff in fleets){
     sel <- x$fleet == ff & x$age >= 0 & is.finite(x$residual)
     if(!any(sel)) next
@@ -150,19 +169,14 @@ plot.samres <- function(x, bubblescale = 1, ...){
     points(x$year[sel], x$age[sel],
            cex = sqrt(abs(x$residual[sel])) * scale,
            pch = 19, col = cols)
+    for(k in seq_len(maxK)){
+      i <- labelRows[k]
+      if(x$fleet[i] == ff){
+        text(x$year[i], x$age[i], labels = k,
+             cex = labelCex, font = 2, col = labelCol)
+      }
+    }
   }
-  legendVals <- pretty(c(0, maxAbs), n = 4)
-  legendVals <- legendVals[legendVals > 0]
-  par(mar = c(2, 4, 2, 1))
-  plot.new()
-  plot.window(xlim = c(0, length(legendVals) + 1), ylim = c(-1, 1))
-  xs <- seq_along(legendVals)
-  points(xs, rep(0.2, length(xs)),
-         cex = sqrt(legendVals) * scale,
-         pch = 19, col = rgb(0, 0, 1, alpha = 0.5))
-  text(xs, rep(-0.7, length(xs)),
-       labels = format(legendVals), cex = 0.9)
-  mtext("|residual|", side = 3, line = 0, cex = 0.9)
   invisible(NULL)
 }
 

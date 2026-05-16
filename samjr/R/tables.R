@@ -298,3 +298,192 @@ modeltable.default <- function(fits, ...){
   }
   res[o, , drop = FALSE]
 }
+
+##' Yield-per-recruit analysis for a samjr fit
+##'
+##' Deterministic equilibrium yield-per-recruit (YPR) curve, holding
+##' biological parameters and selectivity at their recent-year averages.
+##' Locates \eqn{F_{\max}} (yield maximiser), \eqn{F_{0.1}} (where the
+##' slope drops to 10\% of the slope at \eqn{F = 0}), and
+##' \eqn{F_{\mathrm{sprProp}\cdot \mathrm{SPR}_0}} (where SSB-per-recruit
+##' falls to \code{sprProp} times its unfished value). Mirrors
+##' \code{stockassessment::ypr}.
+##'
+##' @param fit a fitted \code{sam} object.
+##' @param Flimit upper end of the F axis.
+##' @param Fdelta F-axis increment.
+##' @param aveYears number of recent years used to form the average
+##' selectivity / biology vectors.
+##' @param sprProp SPR proportion (e.g. 0.35 for F_{35\%SPR}).
+##' @param ... unused.
+##' @return an object of class \code{samypr} with components
+##' \code{fbar}, \code{ssb}, \code{yield}, the three reference points
+##' (\code{fmax}, \code{f01}, \code{fsprProp}) and their indices.
+##' @export
+ypr <- function(fit, Flimit = 2, Fdelta = 0.01,
+                aveYears = min(15, length(fit$data$years)),
+                sprProp = 0.35, ...) UseMethod("ypr")
+
+##' @rdname ypr
+##' @method ypr sam
+##' @export
+ypr.sam <- function(fit, Flimit = 2, Fdelta = 0.01,
+                    aveYears = min(15, length(fit$data$years)),
+                    sprProp = 0.35, ...){
+  data <- fit$data; conf <- fit$conf
+  pick <- function(modelFlag, plMat, dataMat, link = identity){
+    if(isTRUE(modelFlag == 1L)) link(plMat)[seq_len(nrow(dataMat)), , drop = FALSE]
+    else dataMat
+  }
+  stockMeanWeight <- pick(conf$stockWeightModel, fit$pl$logSW,
+                           data$stockMeanWeight, exp)
+  catchMeanWeight <- pick(conf$catchWeightModel, fit$pl$logCW,
+                           data$catchMeanWeight, exp)
+  natMor          <- pick(conf$mortalityModel,    fit$pl$logNM,
+                           data$natMor, exp)
+  propMat         <- pick(conf$matureModel,       fit$pl$logitMO,
+                           data$propMat, plogis)
+  idxno <- which(data$years == max(data$years))
+  yrs   <- (idxno - aveYears + 1):idxno
+  yrsCW <- (idxno - aveYears + 1):(idxno - 1)
+  fbarVec <- fbartable(fit)[, "Estimate"]
+  Fmat <- t(faytable(fit))
+  Fmat[is.na(Fmat)] <- 0
+  ave_sl <- rowSums(Fmat[, yrs, drop = FALSE]) / sum(fbarVec[yrs])
+  ave_sw <- colMeans(stockMeanWeight[yrs, , drop = FALSE])
+  ave_pm <- colMeans(propMat[yrs, , drop = FALSE])
+  ave_nm <- colMeans(natMor[yrs, , drop = FALSE])
+  ave_cw <- colMeans(catchMeanWeight[yrsCW, , drop = FALSE])
+  ave_lf <- if(is.null(data$landFrac)) rep(1, length(ave_cw))
+            else colMeans(data$landFrac[yrsCW, , drop = FALSE])
+  ave_lw <- if(is.null(data$landMeanWeight)) ave_cw
+            else colMeans(data$landMeanWeight[yrsCW, , drop = FALSE])
+  deltafirst <- 1e-5
+  scales <- c(0, deltafirst, seq(0.01, Flimit, by = Fdelta))
+  yields <- numeric(length(scales))
+  ssbs   <- numeric(length(scales))
+  for(i in seq_along(scales)){
+    Fa <- ave_sl * scales[i]
+    Z  <- ave_nm + Fa
+    nA <- length(Z)
+    N  <- exp(-cumsum(c(0, Z[-nA])))
+    N[nA] <- N[nA] / (1 - exp(-Z[nA]))
+    C  <- Fa / Z * (1 - exp(-Z)) * N * ave_lf
+    yields[i] <- sum(C * ave_lw)
+    ssbs[i]   <- sum(N * ave_pm * ave_sw)
+  }
+  fmaxIdx <- which.max(yields)
+  fmax    <- scales[fmaxIdx]
+  deltaY  <- diff(yields)
+  f01Idx  <- which.min((deltaY / Fdelta - 0.1 * deltaY[1] / deltafirst)^2) + 1
+  f01     <- scales[f01Idx]
+  fsprIdx <- which.min((ssbs - sprProp * ssbs[1])^2) + 1
+  fspr    <- scales[fsprIdx]
+  fbarlab <- substitute(bar(F)[X - Y],
+                        list(X = conf$fbarRange[1], Y = conf$fbarRange[2]))
+  ret <- list(fbar = scales, ssb = ssbs, yield = yields, fbarlab = fbarlab,
+              fsprProp = fspr, f01 = f01, fmax = fmax,
+              fsprPropIdx = fsprIdx, f01Idx = f01Idx, fmaxIdx = fmaxIdx,
+              sprProp = sprProp)
+  class(ret) <- "samypr"
+  ret
+}
+
+##' Plot a YPR curve
+##' @param x a \code{samypr} object from \code{\link{ypr}}.
+##' @param ... extra arguments passed to \code{plot}.
+##' @return invisible \code{NULL}.
+##' @method plot samypr
+##' @importFrom graphics axis mtext title
+##' @export
+plot.samypr <- function(x, ...){
+  oldpar <- par(mar = c(5.1, 4.1, 4.1, 5.1))
+  on.exit(par(oldpar))
+  plot(x$fbar, x$yield, type = "l", xlab = x$fbarlab,
+       ylab = "Yield per recruit", ...)
+  lines(c(x$fmax, x$fmax), c(par("usr")[3], x$yield[x$fmaxIdx]),
+        lwd = 3, col = "red")
+  lines(c(x$f01,  x$f01),  c(par("usr")[3], x$yield[x$f01Idx]),
+        lwd = 3, col = "blue")
+  ssbscale <- max(x$yield) / max(x$ssb)
+  lines(x$fbar, ssbscale * x$ssb, lty = "dotted")
+  ssbtick <- pretty(x$ssb)
+  axis(4, at = ssbtick * ssbscale, labels = ssbtick)
+  mtext("SSB per recruit", side = 4, line = 2)
+  lines(c(x$fsprProp, x$fsprProp),
+        c(par("usr")[3], x$ssb[x$fsprPropIdx] * ssbscale),
+        lwd = 3, col = "green")
+  title(eval(substitute(
+    expression(F[max] == fmax ~ ~ ~ ~ ~ F[0.10] == f01
+               ~ ~ ~ ~ ~ F[sprProp * SPR] == fspr),
+    list(fmax = round(x$fmax, 2), f01 = round(x$f01, 2),
+         fspr = round(x$fsprProp, 2), sprProp = x$sprProp))))
+  invisible(NULL)
+}
+
+##' Print a YPR summary table
+##' @param x a \code{samypr} object from \code{\link{ypr}}.
+##' @param ... unused.
+##' @method print samypr
+##' @export
+print.samypr <- function(x, ...){
+  idx <- c(x$fmaxIdx, x$f01Idx, x$fsprPropIdx)
+  ret <- cbind(x$fbar[idx], x$ssb[idx], x$yield[idx])
+  rownames(ret) <- c("Fmax", "F01", paste0("F", x$sprProp * 100))
+  colnames(ret) <- c("Fbar", "SSB", "Yield")
+  print(ret)
+  invisible(x)
+}
+
+##' Yield-per-recruit plot for a samjr fit
+##' @param fit a fitted \code{sam} object or a \code{samypr} object.
+##' @param ... extra arguments forwarded to \code{\link{ypr}} (when
+##' \code{fit} is a \code{sam}) and then to \code{plot.samypr}.
+##' @return invisible \code{NULL}.
+##' @export
+yprplot <- function(fit, ...) UseMethod("yprplot")
+
+##' @rdname yprplot
+##' @method yprplot sam
+##' @export
+yprplot.sam <- function(fit, Flimit = 2, Fdelta = 0.01,
+                       aveYears = min(15, length(fit$data$years)),
+                       sprProp = 0.35, ...){
+  plot(ypr(fit, Flimit = Flimit, Fdelta = Fdelta,
+           aveYears = aveYears, sprProp = sprProp), ...)
+}
+
+##' @rdname yprplot
+##' @method yprplot samypr
+##' @export
+yprplot.samypr <- function(fit, ...) plot(fit, ...)
+
+##' Yield-per-recruit reference-point table for a samjr fit
+##' @param fit a fitted \code{sam} object or a \code{samypr} object.
+##' @param ... extra arguments forwarded to \code{\link{ypr}} (when
+##' \code{fit} is a \code{sam}).
+##' @return a 3-row matrix with \code{Fmax}, \code{F01} and
+##' \code{F<100*sprProp>}, each with columns \code{Fbar}, \code{SSB},
+##' \code{Yield}.
+##' @export
+yprtable <- function(fit, ...) UseMethod("yprtable")
+
+##' @rdname yprtable
+##' @method yprtable sam
+##' @export
+yprtable.sam <- function(fit, Flimit = 2, Fdelta = 0.01,
+                        aveYears = min(15, length(fit$data$years)),
+                        sprProp = 0.35, ...){
+  yprtable(ypr(fit, Flimit = Flimit, Fdelta = Fdelta,
+               aveYears = aveYears, sprProp = sprProp))
+}
+
+##' @rdname yprtable
+##' @method yprtable samypr
+##' @export
+yprtable.samypr <- function(fit, ...){
+  idx <- c(fit$fmaxIdx, fit$f01Idx, fit$fsprPropIdx)
+  ret <- cbind(Fbar = fit$fbar[idx], SSB = fit$ssb[idx], Yield = fit$yield[idx])
+  rownames(ret) <- c("Fmax", "F01", paste0("F", fit$sprProp * 100))
+  ret
+}

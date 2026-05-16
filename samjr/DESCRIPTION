@@ -8,8 +8,9 @@ Description: Provides a small subset of the SAM stockassessment user interface
     RTMB implementation of the state-space age-structured assessment model.
     First version mirrors the workflow used in SAM/testmore/nscod/script.R.
 License: GPL-2
-Depends: RTMB
-Imports: Matrix, methods, stats, utils, graphics, grDevices
+Depends: R (>= 3.5.0), RTMB
+Imports: Matrix, methods, stats, utils, graphics, grDevices, parallel
+Suggests: ellipse
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3

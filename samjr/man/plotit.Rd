@@ -38,6 +38,7 @@ plotit(fit, what, ...)
   drop = 0,
   unnamed.basename = "current",
   xlim = NULL,
+  addCI = rep(FALSE, length(fit)),
   ...
 )
 
@@ -83,6 +84,10 @@ plotit(fit, what, ...)
 
 \item{unnamed.basename}{legend label used by the \code{samset} method for
 the base fit when the set has no \code{names()}.}
+
+\item{addCI}{logical (length 1 or \code{length(fit)}) indicating whether
+confidence intervals should be drawn for the added fits in a
+\code{samset}. Defaults to \code{FALSE} for all added fits.}
 }
 \value{
 invisibly a list with the plotted x, y and CI bands.

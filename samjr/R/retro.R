@@ -114,6 +114,9 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
 ##' @param lower,upper optional named numeric vectors of parameter bounds
 ##' forwarded to \code{\link{sam.fit}}; default to \code{fit$low} and
 ##' \code{fit$hig}.
+##' @param silent forwarded to \code{\link{sam.fit}}; defaults to
+##' \code{TRUE} so re-fits driven by \code{\link{retro}} or
+##' \code{\link{leaveout}} stay quiet.
 ##' @param ... extra arguments forwarded to \code{\link{sam.fit}}.
 ##' @return a new \code{sam} fit.
 ##' @export
@@ -123,7 +126,8 @@ runwithout <- function(fit, year, fleet, ...) UseMethod("runwithout")
 ##' @method runwithout sam
 ##' @export
 runwithout.sam <- function(fit, year = NULL, fleet = NULL,
-                            map = fit$map, lower = fit$low, upper = fit$hig, ...){
+                            map = fit$map, lower = fit$low, upper = fit$hig,
+                            silent = TRUE, ...){
   data <- reduce(fit$data, year = year, fleet = fleet, conf = fit$conf)
   conf <- attr(data, "conf")
   fakefile <- file()
@@ -137,7 +141,8 @@ runwithout.sam <- function(fit, year = NULL, fleet = NULL,
   for(nm in carry){
     if(length(par[[nm]]) == length(fit$pl[[nm]])) par[[nm]] <- fit$pl[[nm]]
   }
-  sam.fit(data, conf, par, map = map, lower = lower, upper = upper, ...)
+  sam.fit(data, conf, par, map = map, lower = lower, upper = upper,
+          silent = silent, ...)
 }
 
 ##' Retrospective analysis of a samjr fit

@@ -14,6 +14,7 @@ runwithout(fit, year, fleet, ...)
   map = fit$map,
   lower = fit$low,
   upper = fit$hig,
+  silent = TRUE,
   ...
 )
 }
@@ -30,6 +31,10 @@ defaults to \code{fit$map}.}
 \item{lower, upper}{optional named numeric vectors of parameter bounds
 forwarded to \code{\link{sam.fit}}; default to \code{fit$low} and
 \code{fit$hig}.}
+
+\item{silent}{forwarded to \code{\link{sam.fit}}; defaults to
+\code{TRUE} so re-fits driven by \code{\link{retro}} or
+\code{\link{leaveout}} stay quiet.}
 }
 \value{
 a new \code{sam} fit.

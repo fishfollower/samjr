@@ -16,4 +16,7 @@
 \description{
 One panel per fleet; bubble area scales with the absolute value of
 the residual; positive residuals plotted in blue, negative in red.
+Bubbles whose \code{|residual|} is closest to 1, 2, 3, ... are
+labelled in place with that integer in grey, so the figure carries
+its own size scale without a separate legend.
 }
