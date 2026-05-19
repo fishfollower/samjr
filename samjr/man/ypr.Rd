@@ -33,7 +33,7 @@ ypr(
 \item{aveYears}{number of recent years used to form the average
 selectivity / biology vectors.}
 
-\item{sprProp}{SPR proportion (e.g. 0.35 for F_{35\%SPR}).}
+\item{sprProp}{SPR proportion (e.g. 0.35 for \eqn{F_{35\%\mathrm{SPR}}}).}
 
 \item{...}{unused.}
 }

@@ -797,7 +797,7 @@ corplotCommon <- function(cmats, fleetNames, ...){
   layout(matrix(seq_len(div[1] * div[2]), nrow = div[1], ncol = div[2]))
   for(i in seq_along(cmats)){
     xx <- cmats[[i]]
-    if(any(is.na(xx))){ plot.new(); title(main = substr(fleetNames[i], 1, 20)); next }
+    if(any(is.na(xx))){ graphics::plot.new(); title(main = substr(fleetNames[i], 1, 20)); next }
     ellipse::plotcorr(xx, col = ccolors[5 * xx + 6],
                       mar = 0.1 + c(2, 2, 2, 2),
                       main = substr(fleetNames[i], 1, 20), ...)
@@ -834,7 +834,7 @@ corplot.samres <- function(x, ...){
   fn <- attr(x, "fleetNames")
   cmats <- lapply(fleets, function(ff){
     tab <- stats::xtabs(resid ~ age + year, data = dat[dat$fleet == ff, ])
-    M <- cor(t(tab))
+    M <- stats::cor(t(tab))
     rownames(M) <- rownames(tab); colnames(M) <- rownames(tab)
     M
   })
@@ -883,7 +883,7 @@ fitplot.sam <- function(fit, log = TRUE,
     for(ff in fleetsSorted){
       ii <- which(aux[, "fleet"] == ff & aux[, "age"] == a)
       if(length(ii) == 0L){
-        plot.new(); next
+        graphics::plot.new(); next
       }
       yr <- aux[ii, "year"]; o <- order(yr)
       main <- if(a == ages[1]) strtrim(fn[ff], 30) else ""

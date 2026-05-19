@@ -324,7 +324,7 @@ modeltable.default <- function(fits, ...){
 ##' @param Fdelta F-axis increment.
 ##' @param aveYears number of recent years used to form the average
 ##' selectivity / biology vectors.
-##' @param sprProp SPR proportion (e.g. 0.35 for F_{35\%SPR}).
+##' @param sprProp SPR proportion (e.g. 0.35 for \eqn{F_{35\%\mathrm{SPR}}}).
 ##' @param ... unused.
 ##' @return an object of class \code{samypr} with components
 ##' \code{fbar}, \code{ssb}, \code{yield}, the three reference points
@@ -447,6 +447,11 @@ print.samypr <- function(x, ...){
 
 ##' Yield-per-recruit plot for a samjr fit
 ##' @param fit a fitted \code{sam} object or a \code{samypr} object.
+##' @param Flimit upper end of the F axis.
+##' @param Fdelta F-axis increment.
+##' @param aveYears number of recent years used to form the average
+##' selectivity / biology vectors.
+##' @param sprProp SPR proportion (e.g. 0.35 for \eqn{F_{35\%\mathrm{SPR}}}).
 ##' @param ... extra arguments forwarded to \code{\link{ypr}} (when
 ##' \code{fit} is a \code{sam}) and then to \code{plot.samypr}.
 ##' @return invisible \code{NULL}.
@@ -470,6 +475,11 @@ yprplot.samypr <- function(fit, ...) plot(fit, ...)
 
 ##' Yield-per-recruit reference-point table for a samjr fit
 ##' @param fit a fitted \code{sam} object or a \code{samypr} object.
+##' @param Flimit upper end of the F axis.
+##' @param Fdelta F-axis increment.
+##' @param aveYears number of recent years used to form the average
+##' selectivity / biology vectors.
+##' @param sprProp SPR proportion (e.g. 0.35 for \eqn{F_{35\%\mathrm{SPR}}}).
 ##' @param ... extra arguments forwarded to \code{\link{ypr}} (when
 ##' \code{fit} is a \code{sam}).
 ##' @return a 3-row matrix with \code{Fmax}, \code{F01} and

@@ -24,6 +24,15 @@ yprtable(fit, ...)
 
 \item{...}{extra arguments forwarded to \code{\link{ypr}} (when
 \code{fit} is a \code{sam}).}
+
+\item{Flimit}{upper end of the F axis.}
+
+\item{Fdelta}{F-axis increment.}
+
+\item{aveYears}{number of recent years used to form the average
+selectivity / biology vectors.}
+
+\item{sprProp}{SPR proportion (e.g. 0.35 for \eqn{F_{35\%\mathrm{SPR}}}).}
 }
 \value{
 a 3-row matrix with \code{Fmax}, \code{F01} and
