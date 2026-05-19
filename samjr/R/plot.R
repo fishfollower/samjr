@@ -896,3 +896,193 @@ fitplot.sam <- function(fit, log = TRUE,
   mtext("Year", side = 1, line = 0.5, outer = TRUE)
   invisible(NULL)
 }
+
+##' Internal: discrete-palette heatmap with overlaid cell values
+##'
+##' Replaces \code{plot.matrix::plot.matrix} for samjr's
+##' \code{residplot}. Row 1 of \code{m} appears at the top of the
+##' panel; cell values formatted with 4 decimals.
+##' @keywords internal
+##' @noRd
+pvalHeat <- function(m, breaks, palette, main = "",
+                     xlab = "", ylab = ""){
+  nr <- nrow(m); nc <- ncol(m)
+  z <- matrix(NA_integer_, nr, nc)
+  for(i in seq_len(nr)){
+    for(j in seq_len(nc)){
+      if(!is.na(m[i, j]))
+        z[i, j] <- findInterval(m[i, j], breaks, rightmost.closed = TRUE)
+    }
+  }
+  zImg <- t(z[nr:1, , drop = FALSE])
+  image(seq_len(nc), seq_len(nr), zImg, col = palette,
+        zlim = c(0.5, length(palette) + 0.5),
+        xlab = xlab, ylab = ylab, main = main, axes = FALSE)
+  rn <- rownames(m); cn <- colnames(m)
+  axis(1, at = seq_len(nc),
+       labels = if(is.null(cn)) seq_len(nc) else cn)
+  axis(2, at = seq_len(nr),
+       labels = if(is.null(rn)) seq_len(nr) else rev(rn), las = 1)
+  box()
+  for(i in seq_len(nr)){
+    for(j in seq_len(nc)){
+      if(!is.na(m[i, j]))
+        text(j, nr - i + 1, sprintf("%.4f", m[i, j]), cex = 0.7)
+    }
+  }
+}
+
+##' Residual diagnostic tests for a samjr fit
+##'
+##' Computes a battery of statistical tests on the one-step-ahead
+##' (OSA) residuals: Student's t-test for bias, chi-square for unit
+##' variance, Ljung-Box for autocorrelation in the time and age
+##' directions, an F-test for equal variances above/below the median
+##' predicted observation (mean-variance relationship), and a
+##' Shapiro-Wilk normality test per fleet. Mirrors
+##' \code{stockassessment::residplot} but replaces the
+##' \code{plot.matrix} heatmap with a small base-R helper, and uses
+##' \code{fit$rep$logPred} (log-scale predictions) for the
+##' median-split partition; this is invariant under the log transform.
+##' @param fit a fitted \code{sam} object.
+##' @param resid optional precomputed OSA residuals (\code{samres}
+##' object). Computed from \code{fit} via \code{\link{residuals.sam}}
+##' if not supplied.
+##' @param bubbles draw bubble plots of the residuals per fleet
+##' (default \code{TRUE}).
+##' @param palette colours for the discrete p-value scale.
+##' @param p.breaks breakpoints for the p-value scale; one more
+##' element than \code{palette}.
+##' @param reverseFleetOrder reverse the fleet order within each year
+##' when computing the OSA residuals (default \code{FALSE}).
+##' @param plot draw the plots (default \code{TRUE}). When
+##' \code{FALSE}, only the p-value list is returned.
+##' @return invisibly, a list of p-value matrices:
+##' \code{bias}, \code{variance}, \code{correlation.age},
+##' \code{meanvar}, \code{correlation.time}, \code{normality}.
+##' @seealso \code{\link{residuals.sam}}, \code{\link{procres}}
+##' @importFrom grDevices hcl.colors n2mfrow
+##' @importFrom stats Box.test pf shapiro.test t.test xtabs
+##' @export
+residplot <- function(fit, resid = NULL, bubbles = TRUE,
+                      palette = hcl.colors(4, palette = "Blues"),
+                      p.breaks = c(0, 0.001, 0.05, 0.1, 1),
+                      reverseFleetOrder = FALSE, plot = TRUE){
+  if(!inherits(fit, "sam"))
+    stop("fit must be of class 'sam'")
+  if(!is.null(resid) && !inherits(resid, "samres"))
+    stop("resid must be of class 'samres'")
+  stopifnot(length(palette) + 1L == length(p.breaks))
+
+  if(is.null(resid)){
+    if(reverseFleetOrder){
+      ord <- order(fit$data$aux[, "year"],
+                   max(fit$data$aux[, "fleet"]) - fit$data$aux[, "fleet"],
+                   fit$data$aux[, "age"])
+      resid <- residuals(fit, subset = ord)
+    }else{
+      resid <- residuals(fit)
+    }
+  }
+
+  rdf <- data.frame(residual = resid$residual, fleet = resid$fleet,
+                    age = resid$age, year = resid$year)
+  rdf$residual[is.nan(rdf$residual)] <- NA
+  if(any(rdf$age < 0))
+    rdf$age[rdf$age < 0] <- fit$conf$minAge
+  restab <- xtabs(residual ~ year + age + fleet, data = rdf)
+  restab[restab == 0] <- NA
+
+  nF     <- dim(restab)[3]
+  ageRng <- fit$conf$minAge:fit$conf$maxAge
+  fnames <- sapply(attr(fit$data, "fleetNames"), substr, start = 0, stop = 14)
+
+  bias <- variance <- bias.p <- variance.p <- acf.time.p <-
+    matrix(NA, nrow = nF, ncol = length(ageRng),
+           dimnames = list(Fleet = fnames, Age = ageRng))
+  shapiro <- acf.age.p <- meanvar <- meanvar.p <- numeric(nF)
+
+  chisqtest <- function(x, testvar = 1){
+    n <- length(x); s2 <- stats::var(x)
+    1 - stats::pchisq((n - 1) * s2 / testvar, n - 1)
+  }
+
+  noagesf <- fit$data$maxAgePerFleet - fit$data$minAgePerFleet
+
+  bp <- function(x, y, v, scale = 3, ...){
+    plot(x, y, cex = sqrt(abs(v)) * scale,
+         col = ifelse(v < 0, rgb(1, 0, 0, alpha = 0.5),
+                              rgb(0, 0, 1, alpha = 0.5)),
+         pch = 19,
+         xlim = c(min(x) - 1, max(x) + 1),
+         ylim = c(min(y) - 1, max(y) + 1), ...)
+  }
+
+  if(plot){
+    op <- par(mfrow = n2mfrow(nF + 6L), las = 1, mar = c(5, 8, 5, 5))
+    on.exit(par(op))
+  }
+
+  for(fl in seq_len(nF)){
+    flsel <- resid$fleet == fl
+    if(plot && bubbles){
+      bp(resid$year[flsel], resid$age[flsel], resid$residual[flsel],
+         main = paste(attr(fit$data, "fleetNames")[fl], "(", fl, ")"),
+         xlab = "Year", ylab = "Age")
+    }
+    vals <- na.omit(as.vector(restab[, , fl]))
+    shapiro[fl] <- if(length(vals) >= 3L) shapiro.test(vals)$p.value else NA
+    acfvec <- as.vector(apply(restab[, , fl], 1,
+                              function(x) c(as.vector(x),
+                                            rep(NA, noagesf[fl] + 1L))))
+    if(is.list(acfvec)) acfvec <- do.call("c", acfvec)
+    acf.age.p[fl] <- Box.test(acfvec, type = "Ljung-Box", lag = 1)$p.value
+
+    sel  <- rdf$fleet == fl
+    sel2 <- fit$rep$logPred[sel] < median(fit$rep$logPred[sel])
+    lo   <- rdf$residual[sel][sel2]
+    hi   <- rdf$residual[sel][!sel2]
+    meanvar[fl]   <- stats::var(hi, na.rm = TRUE) /
+                     stats::var(lo, na.rm = TRUE)
+    meanvar.p[fl] <- pf(meanvar[fl], length(hi) - 1L, length(lo) - 1L)
+
+    for(a in fit$data$minAgePerFleet[fl]:fit$data$maxAgePerFleet[fl]){
+      colu <- if(fit$data$fleetTypes[fl] == 3L) 1L else a - fit$conf$minAge + 1L
+      cells <- restab[, colu, fl]
+      bias[fl, colu]       <- mean(cells, na.rm = TRUE)
+      variance[fl, colu]   <- stats::var(na.omit(cells))
+      cellsOK <- na.omit(cells)
+      bias.p[fl, colu]     <- if(length(cellsOK) >= 2L)
+                                t.test(cellsOK)$p.value else NA
+      variance.p[fl, colu] <- if(length(cellsOK) >= 2L)
+                                chisqtest(cellsOK) else NA
+      acf.time.p[fl, colu] <- Box.test(cells, type = "Ljung-Box")$p.value
+    }
+  }
+
+  if(plot){
+    pvalHeat(apply(t(bias.p), 2, rev),     p.breaks, palette,
+             main = "Bias",                xlab = "Fleet", ylab = "Age")
+    pvalHeat(apply(t(variance.p), 2, rev), p.breaks, palette,
+             main = "Variance",            xlab = "Fleet", ylab = "Age")
+    pvalHeat(matrix(acf.age.p, ncol = 1L,
+                    dimnames = list(fnames, "p")),
+             p.breaks, palette,
+             main = "Correlation age direction", ylab = "Fleet")
+    pvalHeat(matrix(meanvar.p, ncol = 1L,
+                    dimnames = list(fnames, "p")),
+             p.breaks, palette,
+             main = "Mean-variance relationship", ylab = "Fleet")
+    pvalHeat(apply(t(acf.time.p), 2, rev), p.breaks, palette,
+             main = "Correlation time direction",
+             xlab = "Fleet", ylab = "Age")
+    pvalHeat(matrix(shapiro, ncol = 1L,
+                    dimnames = list(fnames, "p")),
+             p.breaks, palette,
+             main = "Normality (Shapiro)", ylab = "Fleet")
+  }
+
+  invisible(list(bias = bias.p, variance = variance.p,
+                 correlation.age = acf.age.p, meanvar = meanvar.p,
+                 correlation.time = acf.time.p, normality = shapiro))
+}
