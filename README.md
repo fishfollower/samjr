@@ -13,14 +13,15 @@ on every test case shipped with the package.
 ## Why samjr?
 
 * **Readable.** The full state-space likelihood lives in
-  [`samjr/R/likelihood.R`](samjr/R/likelihood.R) (~370 lines of base R).
+  [`samjr/R/likelihood.R`](samjr/R/likelihood.R) (~360 lines of base R).
 * **Hackable.** Want to tweak the recruitment model, the F correlation,
   or add a new biology process? Edit one R file and reinstall. No
   recompilation, no TMB template gymnastics.
 * **Faithful.** The default workflow (`read.ices` → `setup.sam.data` →
   `defcon` → `defpar` → `sam.fit`) and the standard tables (`ssbtable`,
   `fbartable`, `rectable`, `catchtable`, `tsbtable`, `ntable`, `faytable`,
-  `caytable`, `qtable`) all match SAM to within `tolerance = 1e-4`.
+  `caytable`, `qtable`, `partable`, `modeltable`) all match SAM to within
+  `tolerance = 1e-4`.
 * **RTMB-native.** Random effects, Laplace approximation, OSA residuals,
   joint precision, automatic differentiation - all from RTMB.
 
@@ -34,7 +35,7 @@ remotes::install_github("fishfollower/samjr")
 ```
 
 samjr depends on `RTMB` and uses base R for everything else (`Matrix`,
-`methods`, `stats`, `utils`, `graphics`, `grDevices`).
+`methods`, `stats`, `utils`, `graphics`, `grDevices`, `parallel`).
 
 ## Quick start
 
@@ -57,6 +58,11 @@ par(opar)
 ssbtable(fit)        # Estimate / Low / High by year
 fbartable(fit)
 catchtable(fit)
+partable(fit)        # parameter estimates with std. errors
+modeltable(fit)      # one-line model summary (nll, npar, AIC)
+
+res <- residuals(fit)  # OSA residuals via RTMB::oneStepPredict
+plot(res)
 ```
 
 To start from your own ICES `.dat` files instead:
@@ -230,10 +236,21 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `ntable`, `faytable`, `caytable` | year x age, point estimates |
 | `qtable` | catchabilities by fleet x age |
 | `partable`, `modeltable` | parameter / model summaries |
-| `ssbplot`, `fbarplot`, `recplot`, `catchplot` | corresponding plots |
+| `modelDescription` | prose description of the fitted model |
+| `ssbplot`, `fbarplot`, `recplot`, `catchplot`, `tsbplot` | summary plots |
+| `selplot`, `srplot`, `fitplot`, `dataplot`, `parplot`, `sdplot`, `corplot` | diagnostic plots |
+| `residuals` (and `plot`/`print` methods) | OSA residuals via `RTMB::oneStepPredict` |
 | `forecast` | short-term stochastic forecast |
-| `retro`, `runwithout`, `mohn` | retrospective tools |
+| `ypr`, `yprtable`, `yprplot` | yield-per-recruit analysis |
+| `retro`, `runwithout`, `leaveout`, `mohn` | retrospective and leave-one-out tools |
 | `jit` | jitter starting values, refit |
+| `simulate`, `simstudy` | simulate from the fitted model / parametric bootstrap |
+| `c.sam` | combine multiple `sam` fits into a `samset` |
+| `coef`, `logLik`, `nobs`, `AIC`, `summary` | standard S3 methods on a `sam` fit |
+| `read.ices`, `read.surveys`, `read.data.files` | read ICES / SAM input files |
+| `write.ices`, `write.surveys`, `write.data.files` | inverse writers |
+| `loadConf`, `saveConf` | round-trip a `conf` list to / from disk |
+| `getFleet`, `reduce` | extract a fleet / subset a dataset |
 
 `forecast.sam` projects forward year by year using the standard
 $\mathrm{SAM}$ survival recursion ($Z = F_{y-1} + M_{y-1}$). The
