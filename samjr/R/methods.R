@@ -105,6 +105,96 @@ residuals.sam <- function(object, discrete = FALSE,
   ret
 }
 
+##' Joint-sample process residuals for a samjr fit
+##'
+##' Produces a single joint-sample standardized process residual draw
+##' for the log(N) and log(F) latent states of a fitted samjr model.
+##' Mirrors \code{stockassessment::procres}: rebuilds the objective
+##' with an internal residual flag enabled, runs an \code{sdreport}
+##' with report covariances, draws one multivariate-normal sample from
+##' the joint posterior of the standardized state-equation
+##' innovations, and returns the result as a \code{samres} data frame
+##' compatible with \code{plot.samres} and \code{corplot.samres}.
+##'
+##' The initial year of log(N) has no state-equation prediction and is
+##' therefore omitted. Both the log(N) and log(F) blocks span the
+##' \code{nYears - 1} year-to-year transitions and are labelled by the
+##' \emph{from} year, matching SAM.
+##'
+##' @param fit a fitted \code{sam} object.
+##' @param seed integer seed for the multivariate-normal draw (default
+##' \code{123456}, matching SAM). Set to \code{NULL} to leave the RNG
+##' state alone.
+##' @param ... unused.
+##' @return a data frame of class \code{samres} with columns
+##' \code{year}, \code{fleet}, \code{age}, \code{residual}. Fleet 1
+##' holds the log(N) residuals; subsequent fleets correspond to the
+##' catch fleets (\code{fleetTypes == 0}) in their data-set order.
+##' @seealso \code{\link{residuals.sam}}, \code{\link{plot.samres}},
+##' \code{\link{corplot.samres}}
+##' @importFrom RTMB MakeADFun sdreport
+##' @export
+procres <- function(fit, seed = 123456, ...){
+  dat2 <- fit$dat
+  dat2$resFlag <- 1L
+  f2 <- makeBabyLikelihood(dat2)
+  randomVars <- c("logN", "logF", "missing")
+  if(dat2$stockWeightModel >= 1) randomVars <- c(randomVars, "logSW")
+  if(dat2$catchWeightModel >= 1) randomVars <- c(randomVars, "logCW")
+  if(dat2$matureModel      >= 1) randomVars <- c(randomVars, "logitMO")
+  if(dat2$mortalityModel   >= 1) randomVars <- c(randomVars, "logNM")
+  obj2 <- MakeADFun(f2, fit$pl,
+                    random = randomVars,
+                    map = fit$map,
+                    silent = TRUE)
+  sdr <- sdreport(obj2, par.fixed = fit$opt$par,
+                  getReportCovariance = TRUE)
+  val <- sdr$value
+  cv  <- sdr$cov
+  nm  <- names(val)
+
+  if(!is.null(seed)) set.seed(seed)
+
+  nAges   <- ncol(fit$pl$logN)
+  nFstate <- ncol(fit$pl$logF)
+  ages    <- fit$conf$minAge:fit$conf$maxAge
+
+  drawBlock <- function(name){
+    idx <- which(nm == name)
+    Sigma <- as.matrix(cv[idx, idx, drop = FALSE])
+    Sigma <- (Sigma + t(Sigma)) / 2
+    as.vector(samRmvnorm(1, val[idx], Sigma))
+  }
+
+  yearsFrom <- fit$data$years[seq_len(length(fit$data$years) - 1L)]
+
+  resN <- matrix(drawBlock("resN"), nrow = nAges)
+  resNdf <- data.frame(
+    year     = yearsFrom[as.vector(col(resN))],
+    fleet    = 1L,
+    age      = ages[as.vector(row(resN))],
+    residual = as.vector(resN))
+
+  resF <- matrix(drawBlock("resF"), nrow = nFstate)
+
+  catchFleet <- which(fit$data$fleetTypes == 0)
+  iF    <- fit$conf$keyLogFsta[catchFleet, ]
+  keep  <- iF >= 0
+  sub   <- resF[iF[keep] + 1L, , drop = FALSE]
+  fAges <- ages[seq_len(sum(keep))]
+  resFdf <- data.frame(
+    year     = yearsFrom[as.vector(col(sub))],
+    fleet    = 2L,
+    age      = fAges[as.vector(row(sub))],
+    residual = as.vector(sub))
+
+  ret <- rbind(resNdf, resFdf)
+  attr(ret, "fleetNames") <- c("Joint sample residuals log(N)",
+                                "Joint sample residuals log(F)")
+  class(ret) <- c("samres", "data.frame")
+  ret
+}
+
 ##' Print a \code{samres} residual data frame
 ##' @param x a \code{samres} object.
 ##' @param ... unused.

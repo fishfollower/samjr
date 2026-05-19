@@ -94,6 +94,7 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 makeBabyLikelihood <- function(dat){
   function(par){
     getAll(par, dat)
+    resFlag <- if(is.null(dat$resFlag)) 0L else as.integer(dat$resFlag)
     logobs <- OBS(logobs)
     osaMode <- inherits(logobs, "osa")
     if(length(missing) > 0){
@@ -169,6 +170,10 @@ makeBabyLikelihood <- function(dat){
       stop(paste("srmode", srmode, "not implemented"))
     }
     jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
+    if(resFlag == 1L){
+      resN <- AD(matrix(0, nrow = ncol, ncol = nrow - 1L))
+      resN[1, yIdx - 1L] <- (logN[yIdx, 1] - pred) / sdR
+    }
 
     for(y in 2:nrow){
       for(a in 2:ncol){
@@ -177,6 +182,9 @@ makeBabyLikelihood <- function(dat){
           pred <- log(exp(pred) + exp(logN[y - 1, a] - F[y - 1, a] - M[y - 1, a]))
         }
         jnll <- jnll - dnorm(logN[y, a], pred, sdS, log = TRUE)
+        if(resFlag == 1L){
+          resN[a, y - 1L] <- (logN[y, a] - pred) / sdS
+        }
       }
     }
 
@@ -196,8 +204,15 @@ makeBabyLikelihood <- function(dat){
       corMatF <- rhoF^distF
     }
     SigmaF <- outer(sdF, sdF) * corMatF
+    if(resFlag == 1L){
+      resF <- AD(matrix(0, nrow = nF, ncol = nrow - 1L))
+      Lf <- t(chol(SigmaF))
+    }
     for(y in 2:nrow){
       jnll <- jnll - dmvnorm(logF[y, ], logF[y - 1, ], SigmaF, log = TRUE)
+      if(resFlag == 1L){
+        resF[, y - 1L] <- solve(Lf, logF[y, ] - logF[y - 1, ])
+      }
     }
 
     logPred <- AD(numeric(nobs))
@@ -359,6 +374,10 @@ makeBabyLikelihood <- function(dat){
     ADREPORT(logR)
     ADREPORT(logCatch)
     ADREPORT(logtsb)
+    if(resFlag == 1L){
+      ADREPORT(resN)
+      ADREPORT(resF)
+    }
     jnll
   }
 }
