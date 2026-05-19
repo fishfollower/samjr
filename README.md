@@ -7,7 +7,7 @@ samjr trades C++ for readable R while keeping bit-identical fits to SAM
 on every test case shipped with the package.
 
 > **Status.** A small subset of SAM, with the canonical North Sea cod
-> workflow as the reference example. All 18 testmore scripts pass
+> workflow as the reference example. All 20 testmore scripts pass
 > bit-identical to a SAM 0.12.0 reference.
 
 ## Why samjr?
@@ -240,6 +240,8 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `ssbplot`, `fbarplot`, `recplot`, `catchplot`, `tsbplot` | summary plots |
 | `selplot`, `srplot`, `fitplot`, `dataplot`, `parplot`, `sdplot`, `corplot` | diagnostic plots |
 | `residuals` (and `plot`/`print` methods) | OSA residuals via `RTMB::oneStepPredict` |
+| `procres` | joint-sample process residuals for $\log N$ and $\log F$ |
+| `residplot` | p-value heatmaps (bias, variance, age/time correlation, mean-variance, normality) |
 | `forecast` | short-term stochastic forecast |
 | `ypr`, `yprtable`, `yprplot` | yield-per-recruit analysis |
 | `retro`, `runwithout`, `leaveout`, `mohn` | retrospective and leave-one-out tools |
@@ -267,7 +269,7 @@ samjr/
     data/            # nscodData, nscodConf, nscodParameters
     man/             # roxygen-generated .Rd files
     tools/           # build-nscod-data.R
-  testmore/          # 18 end-to-end test cases (script.R + res.EXP)
+  testmore/          # 20 end-to-end test cases (script.R + res.EXP)
   Makefile           # see `make help`
 ```
 
