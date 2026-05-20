@@ -146,16 +146,16 @@ $\rho_{ij}$ (`fcormode`):
 
 Observation type is set per fleet via `fleetType` and modelled on the
 log scale. Stacking the log observations for fleet $f$ in year $y$ into
-a vector $\log \widetilde{O}_{f,y} \in \mathbb{R}^{n_{f,y}}$ (one entry
-per sampled age), the observation model is
+a vector $\log \widetilde{O}_{f,y}$ of length $n_{f,y}$ (one entry per
+sampled age), the observation model is
 
 ```math
 \log \widetilde{O}_{f,y} \;\sim\; \mathcal{N}(\log O_{f,y},\, \Sigma_{f,y}),
 ```
 
-where $\log O_{f,y} \in \mathbb{R}^{n_{f,y}}$ is the vector of predicted
-log observations and $\Sigma_{f,y}$ is $n_{f,y} \times n_{f,y}$. The
-scalar prediction at age $a$ is
+where $\log O_{f,y}$ is the length-$n_{f,y}$ vector of predicted log
+observations and $\Sigma_{f,y}$ is $n_{f,y} \times n_{f,y}$. The scalar
+prediction at age $a$ is
 
 ```math
 [\log O_{f,y}]_a =
