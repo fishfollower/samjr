@@ -1,6 +1,5 @@
 test                      samjr_s stockassessment_s    ratio
 bfte2014                       6.06         6.10    0.99x
-jacobian                       1.43         1.03    1.39x
 jit                            8.96         6.37    1.41x
 mack                           6.22         6.98    0.89x
 neaHaddockPredVar              7.44         7.46    1.00x

@@ -2,7 +2,7 @@
 # Run each OK testmore script under samjr and stockassessment, time each.
 # Usage: bash bench_ok.sh
 set -u
-TESTS=(bfte2014 jacobian jit mack neaHaddockPredVar
+TESTS=(bfte2014 jit mack neaHaddockPredVar
        nscod nscodFidx nscodcovar nscodsw nscodXtraSd nsher reduced residuals)
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"

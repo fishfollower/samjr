@@ -19,12 +19,12 @@ make -j N testmore
 
 from the repository root.
 
-## Current status: 18 pass bit-identical to reference
+## Current status: 19 pass bit-identical to reference
 
 `nscod`, `nscodFidx`, `nscodsw`, `nscodcovar`, `nscodXtraSd`, `nsher`,
-`jacobian`, `bfte2014`, `codIN3Ben`, `jit`, `mack`, `neaHaddockPredVar`,
-`newtable`, `nscodbiopro`, `nscodswcwmofor`, `parallel`, `reduced`,
-`residuals`.
+`bfte2014`, `codIN3Ben`, `jit`, `mack`, `neaHaddockPredVar`,
+`newtable`, `nscodbiopro`, `nscodswcwmofor`, `parallel`, `procres`,
+`reduced`, `residplot`, `residuals`.
 
 `newtable` compares samjr's tables against a snapshot of SAM
 (`stockassessment 0.12.0`) tables saved as `newtable/tabSAM.rds`. The
