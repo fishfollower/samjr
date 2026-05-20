@@ -146,15 +146,15 @@ $\rho_{ij}$ (`fcormode`):
 
 Observation type is set per fleet via `fleetType` and modelled on the
 log scale. Stacking the log observations for fleet $f$ in year $y$ into
-a vector $\log \widetilde{O}\sb{f,y} \in \mathbb{R}^{n\sb{f,y}}$ (one entry
+a vector $\log \widetilde O_{f,y} \in \mathbb{R}^{n_{f,y}}$ (one entry
 per sampled age), the observation model is
 
 ```math
-\log \widetilde{O}_{f,y} \;\sim\; \mathcal{N}(\log O_{f,y},\, \Sigma_{f,y}),
+\log \widetilde O_{f,y} \;\sim\; \mathcal{N}(\log O_{f,y},\, \Sigma_{f,y}),
 ```
 
-where $\log O\sb{f,y} \in \mathbb{R}^{n\sb{f,y}}$ is the vector of predicted
-log observations and $\Sigma\sb{f,y}$ is $n\sb{f,y} \times n\sb{f,y}$. The
+where $\log O_{f,y} \in \mathbb{R}^{n_{f,y}}$ is the vector of predicted
+log observations and $\Sigma_{f,y}$ is $n_{f,y} \times n_{f,y}$. The
 scalar prediction at age $a$ is
 
 ```math
@@ -170,9 +170,9 @@ scalar prediction at age $a$ is
 ```
 
 where $\tau_f$ is the survey sample time and $Q$ is the catchability.
-Biomass indices (type 3) carry no age dimension, so $\log O\sb{f,y}$ and
-$\Sigma\sb{f,y}$ collapse to scalars (i.e. $n\sb{f,y} = 1$). Per-fleet
-covariance $\Sigma\sb{f,y}$ supports independent, IGAR-distance, and
+Biomass indices (type 3) carry no age dimension, so $\log O_{f,y}$ and
+$\Sigma_{f,y}$ collapse to scalars (i.e. $n_{f,y} = 1$). Per-fleet
+covariance $\Sigma_{f,y}$ supports independent, IGAR-distance, and
 unstructured forms.
 
 ### Spawning stock biomass and catch in weight
