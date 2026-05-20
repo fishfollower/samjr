@@ -48,16 +48,24 @@ data: install
 
 readme: README.pdf
 
-README.pdf: README.md math-filter.lua
-	pandoc $< --standalone --lua-filter=math-filter.lua \
-	          --pdf-engine=xelatex \
-	          -V geometry:margin=1in \
-	          -V colorlinks=true -V linkcolor=blue -V urlcolor=blue \
-	          -V 'header-includes=\usepackage{framed}' \
-	          -V 'header-includes=\usepackage{xcolor}' \
-	          -V 'header-includes=\definecolor{shadecolor}{RGB}{240,240,240}' \
-	          -V 'header-includes=\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}' \
-	          -o $@
+README.pdf: README.md
+	@tmp=$$(mktemp --suffix=.lua); \
+	 printf '%s\n' \
+	   'function CodeBlock(el)' \
+	   '  if el.classes:includes("math") then' \
+	   '    return pandoc.Para({pandoc.Math("DisplayMath", el.text)})' \
+	   '  end' \
+	   'end' > $$tmp; \
+	 pandoc $< --standalone --lua-filter=$$tmp \
+	           --pdf-engine=xelatex \
+	           -V geometry:margin=1in \
+	           -V colorlinks=true -V linkcolor=blue -V urlcolor=blue \
+	           -V 'header-includes=\usepackage{framed}' \
+	           -V 'header-includes=\usepackage{xcolor}' \
+	           -V 'header-includes=\definecolor{shadecolor}{RGB}{240,240,240}' \
+	           -V 'header-includes=\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}' \
+	           -o $@; \
+	 rc=$$?; rm -f $$tmp; exit $$rc
 
 # ---------------------------------------------------------------------------
 # testmore: run every testmore/<dir>/script.R, print OK / FAIL per test, then
