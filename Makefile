@@ -15,7 +15,7 @@ TESTMORE_DIRS    := $(patsubst $(TESTMORE_DIR)/%/script.R,%,$(wildcard $(TESTMOR
 TESTMORE_TIMEOUT ?= 300
 TESTMORE_STATUS  := $(TESTMORE_DIR)/.status
 
-.PHONY: all doc install build check clean data help testmore testmore-prep testmore-summary $(addprefix testmore-,$(TESTMORE_DIRS))
+.PHONY: all doc install build check clean data help readme testmore testmore-prep testmore-summary $(addprefix testmore-,$(TESTMORE_DIRS))
 
 all: install
 
@@ -26,6 +26,7 @@ help:
 	@echo "  build     doc + R CMD build (produces $(TARBALL))"
 	@echo "  check     build + R CMD check --as-cran on the tarball"
 	@echo "  data      rebuild $(PKG)/data/nscod*.rda from testmore/nscod"
+	@echo "  readme    rebuild README.pdf from README.md via pandoc + xelatex"
 	@echo "  testmore  run every testmore/<dir>/script.R and print OK / FAIL"
 	@echo "            (use 'make -j N testmore' to run in parallel)"
 	@echo "  clean     remove generated tarballs, check dirs, testmore artefacts"
@@ -44,6 +45,19 @@ check: build
 
 data: install
 	cd $(PKGDIR) && $(R) --quiet --no-save -f tools/build-nscod-data.R
+
+readme: README.pdf
+
+README.pdf: README.md math-filter.lua
+	pandoc $< --standalone --lua-filter=math-filter.lua \
+	          --pdf-engine=xelatex \
+	          -V geometry:margin=1in \
+	          -V colorlinks=true -V linkcolor=blue -V urlcolor=blue \
+	          -V 'header-includes=\usepackage{framed}' \
+	          -V 'header-includes=\usepackage{xcolor}' \
+	          -V 'header-includes=\definecolor{shadecolor}{RGB}{240,240,240}' \
+	          -V 'header-includes=\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}' \
+	          -o $@
 
 # ---------------------------------------------------------------------------
 # testmore: run every testmore/<dir>/script.R, print OK / FAIL per test, then
