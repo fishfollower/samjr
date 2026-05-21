@@ -104,18 +104,19 @@ Numbers at age evolve as
 ```math
 \log N_{a,y} =
 \begin{cases}
-  R(\mathrm{SSB}_{y-a}) + \varepsilon^{R}_y & a = 1 \\
+  R(\mathrm{SSB}_{y-a}) + \varepsilon^{R}_y & a = a_{\min} \\
   \log N_{a-1,\, y-1} - F_{a-1,\, y-1} - M_{a-1,\, y-1} + \varepsilon^{S}_{a,y}
-    & 1 < a < A \\
+    & a_{\min} < a < A \\
   \log(N_{A-1,\,y-1}\,e^{-Z_{A-1,y-1}} + N_{A,\,y-1}\,e^{-Z_{A,y-1}}) + \varepsilon^{S}_{A,y}
     & a = A \quad (\text{plus group})
 \end{cases}
 ```
 
-with $Z_{a,y} = F_{a,y} + M_{a,y}$. The recruitment function $R(\cdot)$
-is one of:
+with $Z_{a,y} = F_{a,y} + M_{a,y}$, and $a_{\min}$ the first modelled
+age (set by `conf$minAge`, not necessarily 1). The recruitment function
+$R(\cdot)$ is one of:
 
-* `srmode = 0`: random walk, $R(\cdot) = \log N_{1,y-1}$;
+* `srmode = 0`: random walk, $R(\cdot) = \log N_{a_{\min},\,y-1}$;
 * `srmode = 1`: Ricker, $R(S) = \alpha + \log S - e^{\beta} S$;
 * `srmode = 2`: Beverton-Holt, $R(S) = \alpha + \log S - \log(1 + e^{\beta} S)$.
 
