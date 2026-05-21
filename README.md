@@ -166,7 +166,9 @@ scalar prediction at age $a$ is
   \log Q_{a,f} + \log N_{a,y} - \tau_f Z_{a,y}
     & \text{survey index (type 2)} \\
   \log Q_f + \log \mathrm{SSB}_y
-    & \text{biomass index (type 3)}
+    & \text{biomass index (type 3)} \\
+  \log Q_{a,f} + \log \mathrm{MO}_{a,y} + \log N_{a,y} - \tau_f Z_{a,y}
+    & \text{mature-fish index (type 4)}
 \end{cases}
 ```
 

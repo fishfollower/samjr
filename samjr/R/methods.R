@@ -338,6 +338,7 @@ modelDescription <- function(fit){
     "1" = "catch-at-age with effort",
     "2" = "survey index (numbers at age)",
     "3" = "biomass / catch index",
+    "4" = "mature-fish index (numbers at age)",
     "5" = "tagging",
     "6" = "alternative index",
     "7" = "sum-of-fleets",
@@ -442,7 +443,7 @@ modelDescription <- function(fit){
 
   ## Catchability
   push("### Catchability (Q)")
-  surveyFleets <- which(data$fleetTypes %in% c(2, 3, 6))
+  surveyFleets <- which(data$fleetTypes %in% c(2, 3, 4, 6))
   if(length(surveyFleets) == 0){
     push("- (none - no survey-style fleets)")
   }else{

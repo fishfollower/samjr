@@ -511,8 +511,8 @@ plot.samset <- function(x, ...){
 ##' @param fleet_type character vector of fleet-type labels. Default is
 ##' derived from \code{fit$data$fleetTypes}: 0 \dQuote{Catch at age},
 ##' 1 \dQuote{Catch at age with effort}, 2 or 6 \dQuote{Index at age},
-##' 3 \dQuote{Biomass or catch index}, 5 \dQuote{Tagging data},
-##' 7 \dQuote{Sum of fleets}.
+##' 3 \dQuote{Biomass or catch index}, 4 \dQuote{Mature index at age},
+##' 5 \dQuote{Tagging data}, 7 \dQuote{Sum of fleets}.
 ##' @param fleet_names character vector of fleet names; defaults to
 ##' \code{attr(fit$data, "fleetNames")}.
 ##' @return invisible \code{NULL}.
@@ -556,6 +556,7 @@ dataplot.sam <- function(fit, col = NULL, fleet_type = NULL, fleet_names = NULL)
       if(fleet_type[i] == 1) fleet_type[i] <- "Catch at age with effort"
       if(fleet_type[i] == 2 || fleet_type[i] == 6) fleet_type[i] <- "Index at age"
       if(fleet_type[i] == 3) fleet_type[i] <- "Biomass or catch index"
+      if(fleet_type[i] == 4) fleet_type[i] <- "Mature index at age"
       if(fleet_type[i] == 5) fleet_type[i] <- "Tagging data"
       if(fleet_type[i] == 7) fleet_type[i] <- "Sum of fleets"
     }

@@ -237,6 +237,12 @@ makeBabyLikelihood <- function(dat){
           survPred <- survPred * exp(logQpow[keyQpow[ff, a]])
         }
         logPred[i] <- logQ[keyQ[ff, a]] + survPred
+      }else if(fleetTypes[ff] == 4){
+        survPred <- logN[y, a] - Z * sampleTimes[ff]
+        if(!is.null(keyQpow) && !is.na(keyQpow[ff, a]) && keyQpow[ff, a] >= 1){
+          survPred <- survPred * exp(logQpow[keyQpow[ff, a]])
+        }
+        logPred[i] <- logQ[keyQ[ff, a]] + log(MO[y, a]) + survPred
       }else{
         stop("Fleet type not implemented")
       }

@@ -17,8 +17,8 @@ dataplot(fit, col = NULL, fleet_type = NULL, fleet_names = NULL)
 \item{fleet_type}{character vector of fleet-type labels. Default is
 derived from \code{fit$data$fleetTypes}: 0 \dQuote{Catch at age},
 1 \dQuote{Catch at age with effort}, 2 or 6 \dQuote{Index at age},
-3 \dQuote{Biomass or catch index}, 5 \dQuote{Tagging data},
-7 \dQuote{Sum of fleets}.}
+3 \dQuote{Biomass or catch index}, 4 \dQuote{Mature index at age},
+5 \dQuote{Tagging data}, 7 \dQuote{Sum of fleets}.}
 
 \item{fleet_names}{character vector of fleet names; defaults to
 \code{attr(fit$data, "fleetNames")}.}

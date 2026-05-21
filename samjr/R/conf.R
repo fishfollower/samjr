@@ -88,7 +88,7 @@ defcon <- function(dat, level = 1){
   x <- matrix(0, nrow = nFleets, ncol = nAges)
   lastMax <- 0
   for(i in 1:nrow(x)){
-    if(fleetTypes[i] %in% c(1, 2, 3, 6)){
+    if(fleetTypes[i] %in% c(1, 2, 3, 4, 6)){
       x[i, (ages[i, 1] - minAge + 1):(ages[i, 2] - minAge + 1)] <-
         setSeq(ages[i, 1], ages[i, 2]) + lastMax
       lastMax <- max(x)
@@ -111,7 +111,7 @@ defcon <- function(dat, level = 1){
   x <- matrix(0, nrow = nFleets, ncol = nAges)
   lastMax <- 0
   for(i in 1:nrow(x)){
-    if(fleetTypes[i] %in% c(0, 1, 2, 3, 6)){
+    if(fleetTypes[i] %in% c(0, 1, 2, 3, 4, 6)){
       x[i, (ages[i, 1] - minAge + 1):(ages[i, 2] - minAge + 1)] <- lastMax + 1
       lastMax <- max(x)
     }
@@ -120,14 +120,14 @@ defcon <- function(dat, level = 1){
 
   ret$obsCorStruct <- factor(rep("ID", nFleets), levels = c("ID", "AR", "US"))
   if(level == 2){
-    ret$obsCorStruct[fleetTypes == 2] <- "AR"
+    ret$obsCorStruct[fleetTypes %in% c(2, 4)] <- "AR"
   }
   ret$keyCorObs <- matrix(-1, nrow = nFleets, ncol = nAges - 1)
   colnames(ret$keyCorObs) <- paste(minAge:(maxAge - 1), (minAge + 1):maxAge, sep = "-")
   nextpar <- 0
   for(i in 1:nrow(x)){
     if(ages[i, 1] < ages[i, 2]){
-      if((level == 2) & (fleetTypes[i] == 2)){
+      if((level == 2) & (fleetTypes[i] %in% c(2, 4))){
         ret$keyCorObs[i, (ages[i, 1] - minAge + 1):(ages[i, 2] - minAge)] <- nextpar
         nextpar <- nextpar + 1
       }else{
