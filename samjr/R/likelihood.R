@@ -1,8 +1,8 @@
-##' Internal: GMRF prior negative log-density on a year-by-age latent matrix.
+##' Internal: GMRF process negative log-density on a year-by-age latent matrix.
 ##' @keywords internal
 ##' @noRd
-gmrfPriorNll <- function(latent, mean, keyMean, logPhi, logSdProc,
-                         Wc, Wd, Wp, mode){
+gmrfProcNll <- function(latent, mean, keyMean, logPhi, logSdProc,
+                        Wc, Wd, Wp, mode){
   phi   <- exp(logPhi)
   nA    <- ncol(latent); nFull <- nrow(latent)
   Q <- Matrix::Diagonal(nFull * nA) - phi[1] * Wc - phi[2] * Wd
@@ -55,7 +55,7 @@ betaObsNll <- function(logitP, Pobs, nObs, logSdP){
 gmrfWeightContrib <- function(logW, Wobs, nObs, mean, keyMean, logPhi,
                               logSdProc, logSdObs, keyObsVar,
                               Wc, Wd, Wp, mode){
-  nll <- gmrfPriorNll(logW, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) +
+  nll <- gmrfProcNll(logW, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) +
          logNormalObsNll(logW, Wobs, nObs, logSdObs, keyObsVar)
   list(nll = nll, smoothed = exp(logW[1:nObs, , drop = FALSE]))
 }
@@ -66,7 +66,7 @@ gmrfWeightContrib <- function(logW, Wobs, nObs, mean, keyMean, logPhi,
 ##' @noRd
 gmrfMatureContrib <- function(logitP, Pobs, nObs, mean, keyMean, logPhi,
                               logSdProc, logSdP, Wc, Wd, Wp, mode){
-  nll <- gmrfPriorNll(logitP, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) +
+  nll <- gmrfProcNll(logitP, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) +
          betaObsNll(logitP, Pobs, nObs, logSdP)
   list(nll = nll, smoothed = plogis(logitP[1:nObs, , drop = FALSE]))
 }

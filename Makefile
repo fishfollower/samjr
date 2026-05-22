@@ -72,7 +72,7 @@ README.pdf: README.md
 # a summary. Per-test results are recorded in $(TESTMORE_STATUS)/<dir> so the
 # summary works under `make -j`.
 
-testmore-prep:
+testmore-prep: install
 	@rm -rf $(TESTMORE_STATUS)
 	@mkdir -p $(TESTMORE_STATUS)
 

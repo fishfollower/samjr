@@ -197,7 +197,7 @@ unstructured forms.
 Stock weight $\mathrm{SW}$, catch weight $\mathrm{CW}$, maturity
 $\mathrm{MO}$, and natural mortality $M$ can each be modelled as
 year-by-age Gaussian Markov random fields rather than treated as
-data. The latent matrix $X$ then has prior precision
+data. The latent matrix $X$ then has process precision
 
 ```math
 Q = I - \phi_{\text{cohort}} W_c - \phi_{\text{within-year}} W_d
