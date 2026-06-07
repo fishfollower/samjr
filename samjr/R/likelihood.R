@@ -8,8 +8,7 @@ gmrfProcNll <- function(latent, mean, keyMean, logPhi, logSdProc,
   Q <- Matrix::Diagonal(nFull * nA) - phi[1] * Wc - phi[2] * Wd
   if(mode == 2) Q <- Q - phi[3] * Wp
   mP <- outer(rep(1, nFull), mean[keyMean])
-  -dgmrf(as.vector(latent - mP), mu = 0, Q = Q,
-         log = TRUE, scale = exp(logSdProc))
+  -dgmrf(as.vector(latent - mP), mu = 0, Q = Q, log = TRUE, scale = exp(logSdProc))
 }
 
 ##' Internal: per-cell log-normal observation negative log-likelihood
@@ -41,9 +40,7 @@ betaObsNll <- function(logitP, Pobs, nObs, logSdP){
   b    <- (1 - m) * prec
   P0   <- ifelse(is.na(Pobs), 0.5, Pobs)
   hi   <- P0 > 0.5
-  contrib <- ifelse(hi,
-                    dbeta(squash(1 - P0), b, a, log = TRUE),
-                    dbeta(squash(P0),     a, b, log = TRUE))
+  contrib <- ifelse(hi, dbeta(squash(1 - P0), b, a, log = TRUE), dbeta(squash(P0), a, b, log = TRUE))
   maskNum <- as.numeric(!is.na(Pobs))
   -sum(contrib * maskNum)
 }
@@ -52,11 +49,8 @@ betaObsNll <- function(logitP, Pobs, nObs, logSdP){
 ##' Used for stockWeightModel, catchWeightModel, mortalityModel.
 ##' @keywords internal
 ##' @noRd
-gmrfWeightContrib <- function(logW, Wobs, nObs, mean, keyMean, logPhi,
-                              logSdProc, logSdObs, keyObsVar,
-                              Wc, Wd, Wp, mode){
-  nll <- gmrfProcNll(logW, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) +
-         logNormalObsNll(logW, Wobs, nObs, logSdObs, keyObsVar)
+gmrfWeightContrib <- function(logW, Wobs, nObs, mean, keyMean, logPhi, logSdProc, logSdObs, keyObsVar, Wc, Wd, Wp, mode){
+  nll <- gmrfProcNll(logW, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) + logNormalObsNll(logW, Wobs, nObs, logSdObs, keyObsVar)
   list(nll = nll, smoothed = exp(logW[1:nObs, , drop = FALSE]))
 }
 
@@ -64,10 +58,8 @@ gmrfWeightContrib <- function(logW, Wobs, nObs, mean, keyMean, logPhi,
 ##' Used for matureModel.
 ##' @keywords internal
 ##' @noRd
-gmrfMatureContrib <- function(logitP, Pobs, nObs, mean, keyMean, logPhi,
-                              logSdProc, logSdP, Wc, Wd, Wp, mode){
-  nll <- gmrfProcNll(logitP, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) +
-         betaObsNll(logitP, Pobs, nObs, logSdP)
+gmrfMatureContrib <- function(logitP, Pobs, nObs, mean, keyMean, logPhi, logSdProc, logSdP, Wc, Wd, Wp, mode){
+  nll <- gmrfProcNll(logitP, mean, keyMean, logPhi, logSdProc, Wc, Wd, Wp, mode) + betaObsNll(logitP, Pobs, nObs, logSdP)
   list(nll = nll, smoothed = plogis(logitP[1:nObs, , drop = FALSE]))
 }
 
@@ -121,33 +113,25 @@ makeBabyLikelihood <- function(dat){
     }
 
     if(stockWeightModel >= 1){
-      sw <- gmrfWeightContrib(logSW, SW, swNobs, meanLogSW, keyStockWeightMean,
-                              logPhiSW, logSdProcLogSW, logSdLogSW,
-                              keyStockWeightObsVar, Wc, Wd, Wp, stockWeightModel)
+      sw <- gmrfWeightContrib(logSW, SW, swNobs, meanLogSW, keyStockWeightMean, logPhiSW, logSdProcLogSW, logSdLogSW, keyStockWeightObsVar, Wc, Wd, Wp, stockWeightModel)
       jnll <- jnll + sw$nll
       SW <- sw$smoothed
       ADREPORT(logSW)
     }
     if(catchWeightModel >= 1){
-      cw <- gmrfWeightContrib(logCW, CW, cwNobs, meanLogCW, keyCatchWeightMean,
-                              logPhiCW, logSdProcLogCW, logSdLogCW,
-                              keyCatchWeightObsVar, Wc, Wd, Wp, catchWeightModel)
+      cw <- gmrfWeightContrib(logCW, CW, cwNobs, meanLogCW, keyCatchWeightMean, logPhiCW, logSdProcLogCW, logSdLogCW, keyCatchWeightObsVar, Wc, Wd, Wp, catchWeightModel)
       jnll <- jnll + cw$nll
       CW <- cw$smoothed
       ADREPORT(logCW)
     }
     if(matureModel >= 1){
-      mo <- gmrfMatureContrib(logitMO, MO, moNobs, meanLogitMO, keyMatureMean,
-                              logPhiMO, logSdProcLogitMO, logSdMO,
-                              Wc, Wd, Wp, matureModel)
+      mo <- gmrfMatureContrib(logitMO, MO, moNobs, meanLogitMO, keyMatureMean, logPhiMO, logSdProcLogitMO, logSdMO, Wc, Wd, Wp, matureModel)
       jnll <- jnll + mo$nll
       MO <- mo$smoothed
       ADREPORT(logitMO)
     }
     if(mortalityModel >= 1){
-      nmRes <- gmrfWeightContrib(logNM, M, nmNobs, meanLogNM, keyMortalityMean,
-                                 logPhiNM, logSdProcLogNM, logSdLogNM,
-                                 keyMortalityObsVar, Wc, Wd, Wp, mortalityModel)
+      nmRes <- gmrfWeightContrib(logNM, M, nmNobs, meanLogNM, keyMortalityMean, logPhiNM, logSdProcLogNM, logSdLogNM, keyMortalityObsVar, Wc, Wd, Wp, mortalityModel)
       jnll <- jnll + nmRes$nll
       M <- nmRes$smoothed
       ADREPORT(logNM)
@@ -270,8 +254,7 @@ makeBabyLikelihood <- function(dat){
         }
       }
       if(covType[ff] == 2){
-        idx <- which(ff == unlist(sapply(seq_along(covType),
-                  function(g) if(covType[g] == 2) unstructured(fleetDim[g])$parms() + g)))
+        idx <- which(ff == unlist(sapply(seq_along(covType), function(g) if(covType[g] == 2) unstructured(fleetDim[g])$parms() + g)))
         corMat <- unstructured(n)$corr(parUS[idx])
       }
       if(!(covType[ff] %in% c(0, 1, 2))){
@@ -279,10 +262,6 @@ makeBabyLikelihood <- function(dat){
       }
       S <- outer(sdv, sdv) * corMat
       Slist[[length(Slist) + 1]] <- S
-      hasPVOL <- (!is.null(predVarObsLink)) &&
-                 any(!is.na(predVarObsLink[ff, ]) & predVarObsLink[ff, ] >= 1)
-      hasXtraSd <- any(!is.na(xtraSdIdxByObs[aux[, 2] == ff]))
-      hasFleetWeight <- any(!is.na(weight[aux[, 2] == ff]))
       hasIdxCor <- any(!is.na(idxCor[ff, ]))
       for(y in unique(aux[, 1])){
         idx <- which((aux[, 2] == ff) & (aux[, 1] == y))
@@ -293,53 +272,35 @@ makeBabyLikelihood <- function(dat){
           if(length(yIdx) > 0 && !is.na(idxCor[ff, yIdx]))
             thisCor <- corList[[idxCor[ff, yIdx]]]
         }
-        if(!hasPVOL && !hasXtraSd && !hasFleetWeight && is.null(thisCor) && covType[ff] == 0){
-          for(j in seq_along(idx)){
-            i <- idx[j]
-            a <- if(fleetTypes[ff] == 3) 1L else aux[i, 3] - minAge + 1L
-            sd_i <- exp(logSdLogObs[keySd[ff, a]])
-            jnll <- jnll - dnorm(logobs[i], logPred[i], sd_i, log = TRUE)
+        R <- if(!is.null(thisCor)) thisCor
+             else if(covType[ff] == 0) diag(length(idx)) else corMat
+        effSd <- AD(numeric(length(idx)))
+        for(j in seq_along(idx)){
+          i <- idx[j]
+          a <- if(fleetTypes[ff] == 3) 1L else aux[i, 3] - minAge + 1L
+          base <- logSdLogObs[keySd[ff, a]]
+          baseSd <- exp(base)
+          xtraIdx <- xtraSdIdxByObs[i]
+          link <- if(!is.null(predVarObsLink)) predVarObsLink[ff, a] else NA_integer_
+          w <- weight[i]
+          if(!is.na(w) && fixVarToWeight[ff] == 1){
+            effSd[j] <- sqrt(w)
+          }else if(!is.na(w)){
+            effSd[j] <- baseSd / sqrt(w)
+          }else if(!is.na(xtraIdx)){
+            effSd[j] <- baseSd * exp(logXtraSd[xtraIdx])
+          }else if(!is.na(link) && link >= 1){
+            k <- base + (exp(predVarObs[link]) - 1) * logPred[i]
+            effSd[j] <- sqrt(log(1 + exp(k)))
+          }else{
+            effSd[j] <- baseSd
           }
-        }else if(!hasPVOL && !hasXtraSd && !hasFleetWeight && is.null(thisCor)){
-          jnll <- jnll - dmvnorm(logobs[idx], logPred[idx], S, log = TRUE)
-        }else if(!hasPVOL && !hasXtraSd && !is.null(thisCor)){
-          sdEff <- AD(numeric(length(idx)))
-          for(j in seq_along(idx)){
-            i <- idx[j]
-            a <- aux[i, 3] - minAge + 1L
-            base <- logSdLogObs[keySd[ff, a]]
-            w <- weight[i]
-            if(!is.na(w)){
-              if(fixVarToWeight[ff] == 1) sdEff[j] <- sqrt(w)
-              else                         sdEff[j] <- exp(base) / sqrt(w)
-            }else{
-              sdEff[j] <- exp(base)
-            }
-          }
-          Syear <- thisCor * outer(sdEff, sdEff)
-          jnll <- jnll - dmvnorm(logobs[idx], logPred[idx], Syear, log = TRUE)
+        }
+        if(is.null(thisCor) && covType[ff] == 0){
+          jnll <- jnll - sum(dnorm(logobs[idx], logPred[idx], effSd, log = TRUE))
         }else{
-          for(j in seq_along(idx)){
-            i <- idx[j]
-            a <- aux[i, 3] - minAge + 1L
-            base <- logSdLogObs[keySd[ff, a]]
-            xtraIdx <- xtraSdIdxByObs[i]
-            link <- if(!is.null(predVarObsLink)) predVarObsLink[ff, a] else NA_integer_
-            w <- weight[i]
-            if(!is.na(w) && fixVarToWeight[ff] == 1){
-              sd_i <- sqrt(w)
-            }else if(!is.na(w)){
-              sd_i <- exp(base) / sqrt(w)
-            }else if(!is.na(xtraIdx)){
-              sd_i <- exp(logXtraSd[xtraIdx]) * exp(base)
-            }else if(!is.na(link) && link >= 1){
-              k <- base + (exp(predVarObs[link]) - 1) * logPred[i]
-              sd_i <- sqrt(log(1 + exp(k)))
-            }else{
-              sd_i <- exp(base)
-            }
-            jnll <- jnll - dnorm(logobs[i], logPred[i], sd_i, log = TRUE)
-          }
+          Sigma <- outer(effSd, effSd) * R
+          jnll <- jnll - dmvnorm(logobs[idx], logPred[idx], Sigma, log = TRUE)
         }
       }
     }
@@ -350,11 +311,9 @@ makeBabyLikelihood <- function(dat){
         a_raw <- aux[i, 3] - minAge + 1
         a     <- if(a_raw > maxAgeIdx) maxAgeIdx else a_raw
         ti    <- tagTypeIdx[i]
-        log_pred <- log(tagR[i]) + log(tagNscan[i]) - logN[y, a] - log(1000) +
-                    log(plogis(logitReleaseSurvival[ti]))
+        log_pred <- log(tagR[i]) + log(tagNscan[i]) - logN[y, a] - log(1000) + log(plogis(logitReleaseSurvival[ti]))
         log_var_minus_mu <- log_pred - logitRecapturePhi[ti]
-        jnll <- jnll - dnbinom_robust(logobs[i], log_pred, log_var_minus_mu,
-                                       log = TRUE)
+        jnll <- jnll - dnbinom_robust(logobs[i], log_pred, log_var_minus_mu, log = TRUE)
       }
     }
 
