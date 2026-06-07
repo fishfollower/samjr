@@ -13,7 +13,7 @@ on every test case shipped with the package.
 ## Why samjr?
 
 * **Readable.** The full state-space likelihood lives in
-  [`samjr/R/likelihood.R`](samjr/R/likelihood.R) (~360 lines of base R).
+  [`samjr/R/likelihood.R`](samjr/R/likelihood.R) (~350 lines of base R).
 * **Hackable.** Want to tweak the recruitment model, the F correlation,
   or add a new biology process? Edit one R file and reinstall. No
   recompilation, no TMB template gymnastics.
@@ -174,9 +174,18 @@ scalar prediction at age $a$ is
 
 where $\tau_f$ is the survey sample time and $Q$ is the catchability.
 Biomass indices (type 3) carry no age dimension, so $\log O_{f,y}$ and
-$\Sigma_{f,y}$ collapse to scalars (i.e. $n_{f,y} = 1$). Per-fleet
-covariance $\Sigma_{f,y}$ supports independent, IGAR-distance, and
-unstructured forms.
+$\Sigma_{f,y}$ collapse to scalars (i.e. $n_{f,y} = 1$).
+
+The covariance factorises as $\Sigma_{f,y} = D_{f,y} R_{f,y} D_{f,y}$,
+with correlation $R_{f,y}$ (independent, IGAR-distance, or unstructured
+per fleet via `conf$obsCorStruct`) and a per-observation standard
+deviation on the diagonal. The SD defaults to
+$\exp([\texttt{logSdLogObs}]_{\texttt{keyVarObs}})$ but, as in SAM, can be
+overridden per observation by a supplied weight (`conf$fixVarToWeight`,
+from a `weight`/`cov`/`cov-weight` attribute), an extra-SD factor
+(`conf$keyXtraSd`), or a prediction-variance link that grows the SD with
+the prediction (`conf$predVarObsLink`). These modifiers only set the
+diagonal, so they compose with any correlation structure.
 
 ### Spawning stock biomass and catch in weight
 
