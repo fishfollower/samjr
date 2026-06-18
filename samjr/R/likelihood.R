@@ -81,9 +81,13 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 ##' matrices and predicted observations, and ADREPORTs \code{logssb},
 ##' \code{logfbar}, \code{logR}, \code{logCatch}.
 ##' @param dat the flattened \code{dat} list from \code{toBabyDat}.
+##' @param logSRfun optional custom stock-recruitment function of \code{(S, pv)}
+##'   returning predicted log-recruitment. When supplied it overrides the
+##'   \code{srmode} recruitment and is evaluated as \code{logSRfun(ssbLag,
+##'   logSRpar)} inside the AD tape.
 ##' @keywords internal
 ##' @noRd
-makeBabyLikelihood <- function(dat){
+makeBabyLikelihood <- function(dat, logSRfun = NULL){
   function(par){
     getAll(par, dat)
     resFlag <- if(is.null(dat$resFlag)) 0L else as.integer(dat$resFlag)
@@ -141,16 +145,15 @@ makeBabyLikelihood <- function(dat){
 
     yIdx <- 2:nrow
     ssbLag <- ssb[pmax(yIdx - minAge, 1)]
-    if(srmode == 0){
+    if(!is.null(logSRfun)){
+      pred <- logSRfun(ssbLag, logSRpar)
+    }else if(srmode == 0){
       pred <- logN[yIdx - 1, 1]
-    }
-    if(srmode == 1){
+    }else if(srmode == 1){
       pred <- rickerpar[1] + log(ssbLag) - exp(rickerpar[2]) * ssbLag
-    }
-    if(srmode == 2){
+    }else if(srmode == 2){
       pred <- bhpar[1] + log(ssbLag) - log(1.0 + exp(bhpar[2]) * ssbLag)
-    }
-    if(!(srmode %in% c(0, 1, 2))){
+    }else{
       stop(paste("srmode", srmode, "not implemented"))
     }
     jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))

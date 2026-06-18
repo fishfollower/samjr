@@ -214,7 +214,8 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' \code{\link[stats]{nlminb}}.
 ##'
 ##' Supported features in v1: stock-recruitment modes 0 (random walk),
-##' 1 (Ricker) and 2 (Beverton-Holt); F-process correlation modes 0
+##' 1 (Ricker) and 2 (Beverton-Holt), or a user-supplied recruitment
+##' function via \code{logSRfun} / \code{logSRinit}; F-process correlation modes 0
 ##' (independent), 1 (compound symmetry) and 2 (AR(1)-like decay);
 ##' observation correlation structures \code{ID}, \code{IGAR} (single AR-style
 ##' decay) and \code{US} (unstructured, Cholesky-parameterised); fleet types
@@ -250,6 +251,17 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' @param convplot if \code{TRUE}, live-update a two-axis convergence
 ##' plot (left: nll, right: \code{|maxgr|} on log10 scale) on every
 ##' iteration. \code{FALSE} by default.
+##' @param logSRfun optional custom stock-recruitment function of two
+##' arguments, \code{S} (the relevant lagged spawning stock biomass) and
+##' \code{pv} (the recruitment parameter vector), returning predicted
+##' log-recruitment. When non-\code{NULL} it overrides the model selected by
+##' \code{conf$stockRecruitmentModelCode}, and any conf-based \code{rickerpar}
+##' / \code{bhpar} are fixed (mapped out). Use only AD-compatible operations
+##' (\code{log}, \code{exp}, arithmetic, indexing) so RTMB can tape it.
+##' Defaults to \code{NULL}.
+##' @param logSRinit initial values for the parameter vector \code{pv} passed
+##' to \code{logSRfun}; its length sets the number of estimated recruitment
+##' parameters. Required when \code{logSRfun} is set. Defaults to \code{NULL}.
 ##' @param ... currently ignored.
 ##' @return an object of class \code{sam} with elements \code{data},
 ##' \code{conf}, \code{parameters}, the flattened \code{dat}, the RTMB
@@ -271,14 +283,32 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' recplot(fit)
 ##' catchplot(fit)
 ##' par(opar)
+##'
+##' ## a custom recruitment function reproduces the built-in Ricker
+##' ## (stockRecruitmentModelCode = 1): same negative log likelihood.
+##' confR <- nscodConf; confR$stockRecruitmentModelCode <- 1
+##' fitR <- sam.fit(nscodData, confR, defpar(nscodData, confR))
+##' fitC <- sam.fit(nscodData, confR, defpar(nscodData, confR),
+##'                 logSRfun  = function(S, pv) pv[1] + log(S) - exp(pv[2]) * S,
+##'                 logSRinit = c(1, 1))
+##' c(ricker = fitR$opt$objective, custom = fitC$opt$objective)
 ##' }
 ##' @export
 sam.fit <- function(data, conf, parameters, map = list(),
                     rm.unidentified = FALSE, lower = NULL, upper = NULL,
                     newtonsteps = 3, run = TRUE, silent = FALSE,
-                    convplot = FALSE, ...){
+                    convplot = FALSE, logSRfun = NULL, logSRinit = NULL, ...){
   dat <- toBabyDat(data, conf)
-  f <- makeBabyLikelihood(dat)
+  if(!is.null(logSRfun)){
+    if(!is.function(logSRfun)) stop("logSRfun must be a function of (S, pv)")
+    if(is.null(logSRinit)) stop("logSRinit must be supplied when logSRfun is set")
+    parameters$logSRpar <- as.numeric(logSRinit)
+    for(nm in c("rickerpar", "bhpar")){
+      if(length(parameters[[nm]]) > 0 && is.null(map[[nm]]))
+        map[[nm]] <- factor(rep(NA, length(parameters[[nm]])))
+    }
+  }
+  f <- makeBabyLikelihood(dat, logSRfun)
   nmissing <- sum(is.na(dat$logobs))
   parameters$missing <- numeric(nmissing)
   randomVars <- c("logN", "logF", "missing")
@@ -292,7 +322,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
                    silent = TRUE)
   if(!run){
     fit <- list(data = data, conf = conf, parameters = parameters,
-                dat = dat, obj = obj)
+                dat = dat, obj = obj, logSRfun = logSRfun, logSRinit = logSRinit)
     class(fit) <- "sam"
     return(fit)
   }
@@ -332,7 +362,8 @@ sam.fit <- function(data, conf, parameters, map = list(),
     rep$obsCov <- rep$Slist
   fit <- list(data = data, conf = conf, parameters = parameters,
               dat = dat, obj = obj, opt = opt, sdrep = sdr, rep = rep,
-              map = map, low = lower, hig = upper)
+              map = map, low = lower, hig = upper,
+              logSRfun = logSRfun, logSRinit = logSRinit)
   class(fit) <- "sam"
   fit$pl <- fitParList(fit)
   fit

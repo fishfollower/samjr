@@ -7,7 +7,7 @@ samjr trades C++ for readable R while keeping bit-identical fits to SAM
 on every test case shipped with the package.
 
 > **Status.** A small subset of SAM, with the canonical North Sea cod
-> workflow as the reference example. All 28 testmore scripts pass: the
+> workflow as the reference example. All 29 testmore scripts pass: the
 > fit-based cases are bit-identical to a SAM 0.12.0 reference, and the
 > reference-point cases match SAM 0.12.0 within documented tolerances.
 
@@ -323,7 +323,7 @@ samjr/
     data/            # nscodData, nscodConf, nscodParameters
     man/             # roxygen-generated .Rd files
     tools/           # build-nscod-data.R
-  testmore/          # 28 end-to-end test cases (script.R + res.EXP)
+  testmore/          # 29 end-to-end test cases (script.R + res.EXP)
   Makefile           # see `make help`
 ```
 

@@ -40,7 +40,7 @@ utils::globalVariables(c(
   "logPhiNM", "logPhiSW", "logQ", "logQpow", "logSW", "logScale",
   "logSdLogCW", "logSdLogN", "logSdLogNM", "logSdLogObs", "logSdLogSW",
   "logSdMO", "logSdProcLogCW", "logSdProcLogNM", "logSdProcLogSW",
-  "logSdProcLogitMO", "logXtraSd", "logitMO", "logitRecapturePhi",
+  "logSdProcLogitMO", "logSRpar", "logXtraSd", "logitMO", "logitRecapturePhi",
   "logitReleaseSurvival", "logsdF", "matureModel", "meanLogCW", "meanLogNM",
   "meanLogSW", "meanLogitMO", "minAge", "minYear", "moNobs", "mortalityModel",
   "nmNobs", "parUS", "predVarObs", "predVarObsLink", "rickerpar",

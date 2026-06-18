@@ -16,6 +16,8 @@ sam.fit(
   run = TRUE,
   silent = FALSE,
   convplot = FALSE,
+  logSRfun = NULL,
+  logSRinit = NULL,
   ...
 )
 }
@@ -52,6 +54,19 @@ iteration; set to \code{TRUE} to suppress.}
 plot (left: nll, right: \code{|maxgr|} on log10 scale) on every
 iteration. \code{FALSE} by default.}
 
+\item{logSRfun}{optional custom stock-recruitment function of two
+arguments, \code{S} (the relevant lagged spawning stock biomass) and
+\code{pv} (the recruitment parameter vector), returning predicted
+log-recruitment. When non-\code{NULL} it overrides the model selected by
+\code{conf$stockRecruitmentModelCode}, and any conf-based \code{rickerpar}
+/ \code{bhpar} are fixed (mapped out). Use only AD-compatible operations
+(\code{log}, \code{exp}, arithmetic, indexing) so RTMB can tape it.
+Defaults to \code{NULL}.}
+
+\item{logSRinit}{initial values for the parameter vector \code{pv} passed
+to \code{logSRfun}; its length sets the number of estimated recruitment
+parameters. Required when \code{logSRfun} is set. Defaults to \code{NULL}.}
+
 \item{...}{currently ignored.}
 }
 \value{
@@ -69,7 +84,8 @@ Internally the likelihood is built with RTMB; the optimiser is
 }
 \details{
 Supported features in v1: stock-recruitment modes 0 (random walk),
-1 (Ricker) and 2 (Beverton-Holt); F-process correlation modes 0
+1 (Ricker) and 2 (Beverton-Holt), or a user-supplied recruitment
+function via \code{logSRfun} / \code{logSRinit}; F-process correlation modes 0
 (independent), 1 (compound symmetry) and 2 (AR(1)-like decay);
 observation correlation structures \code{ID}, \code{IGAR} (single AR-style
 decay) and \code{US} (unstructured, Cholesky-parameterised); fleet types
@@ -97,6 +113,15 @@ fbarplot(fit)
 recplot(fit)
 catchplot(fit)
 par(opar)
+
+## a custom recruitment function reproduces the built-in Ricker
+## (stockRecruitmentModelCode = 1): same negative log likelihood.
+confR <- nscodConf; confR$stockRecruitmentModelCode <- 1
+fitR <- sam.fit(nscodData, confR, defpar(nscodData, confR))
+fitC <- sam.fit(nscodData, confR, defpar(nscodData, confR),
+                logSRfun  = function(S, pv) pv[1] + log(S) - exp(pv[2]) * S,
+                logSRinit = c(1, 1))
+c(ricker = fitR$opt$objective, custom = fitC$opt$objective)
 }
 }
 \seealso{
