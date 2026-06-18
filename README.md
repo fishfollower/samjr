@@ -7,8 +7,9 @@ samjr trades C++ for readable R while keeping bit-identical fits to SAM
 on every test case shipped with the package.
 
 > **Status.** A small subset of SAM, with the canonical North Sea cod
-> workflow as the reference example. All 19 testmore scripts pass
-> bit-identical to a SAM 0.12.0 reference.
+> workflow as the reference example. All 28 testmore scripts pass: the
+> fit-based cases are bit-identical to a SAM 0.12.0 reference, and the
+> reference-point cases match SAM 0.12.0 within documented tolerances.
 
 ## Why samjr?
 
@@ -21,7 +22,9 @@ on every test case shipped with the package.
   `defcon` → `defpar` → `sam.fit`) and the standard tables (`ssbtable`,
   `fbartable`, `rectable`, `catchtable`, `tsbtable`, `ntable`, `faytable`,
   `caytable`, `qtable`, `partable`, `modeltable`) all match SAM to within
-  `tolerance = 1e-4`.
+  `tolerance = 1e-4`. The reference-point catalogue (`referencepoints`,
+  `hcr`) mirrors SAM's `stockassessment` and reproduces its published
+  values within documented tolerances.
 * **RTMB-native.** Random effects, Laplace approximation, OSA residuals,
   joint precision, automatic differentiation - all from RTMB.
 
@@ -89,6 +92,26 @@ A short stochastic forecast:
 set.seed(123)
 fc <- forecast(fit, fscale = c(1, 1, 1, 1))
 fc
+```
+
+Reference points and a harvest control rule:
+
+```r
+## per-recruit points work on any fit
+rp <- referencepoints(fit, c("Max", "0.35SPR"), catchType = "landing")
+rp$tables$F          # Estimate / Low / High per reference point
+plot(rp, type = "ypr")
+
+## SR-equilibrium points (Fmsy, Fcrash, ...) need a stock-recruit model
+fit$conf$stockRecruitmentModelCode <- 2L     # Beverton-Holt
+fitBH <- runwithout(fit)
+referencepoints(fitBH, c("MSY", "Crash"))$tables$F
+srplot(fitBH); addRecruitmentCurve(fitBH)    # overlay the fitted SR curve
+
+## stochastic ICES advice rule projection
+hh <- icesAdviceRule(fitBH, Fmsy = 0.22, MSYBtrigger = 150000,
+                     Blim = 100000, nosim = 500, nYears = 15)
+plot(hh)             # SSB / Fbar / Recruitment / Catch with rule lines
 ```
 
 ## The model
@@ -256,6 +279,12 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `residplot` | p-value heatmaps (bias, variance, age/time correlation, mean-variance, normality) |
 | `forecast` | short-term stochastic forecast |
 | `ypr`, `yprtable`, `yprplot` | yield-per-recruit analysis |
+| `referencepoints`, `deterministicReferencepoints` | deterministic reference points (`Fmsy`, `Fmax`, `F35%SPR`, `Fcrash`, ...) with delta-method CIs |
+| `perRecruitClosure`, `perRecruitTable` | per-recruit / equilibrium evaluator |
+| `srProperties`, `srEquilibriumR`, `srGradAt0`, `predictLogR`, `recPars` | stock-recruit model helpers |
+| `parseRefpoint` | parse a reference-point spec (`"MSY"`, `"0.35SPR"`, `"F=0.2"`, ...) |
+| `hcr`, `icesAdviceRule`, `hcrFun` | stochastic harvest control rule projections |
+| `addRecruitmentCurve` | overlay the fitted SR curve (with CI) on `srplot` |
 | `retro`, `runwithout`, `leaveout`, `mohn` | retrospective and leave-one-out tools |
 | `jit` | jitter starting values, refit |
 | `simulate`, `simstudy` | simulate from the fitted model / parametric bootstrap |
@@ -266,11 +295,24 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `loadConf`, `saveConf` | round-trip a `conf` list to / from disk |
 | `getFleet`, `reduce` | extract a fleet / subset a dataset |
 
-`forecast.sam` projects forward year by year using the standard
-$\mathrm{SAM}$ survival recursion ($Z = F_{y-1} + M_{y-1}$). The
+`forecast.sam` projects forward year by year with the same survival
+recursion as the fitted model: each cohort carries over as
+$N_{a,y} = N_{a-1,\,y-1}\,e^{-Z_{a-1,\,y-1}}$ (with the oldest age
+accumulating as a plus group), where $Z_{a,y} = F_{a,y} + M_{a,y}$. The
 fitted joint precision is used to draw initial state perturbations,
 recruitment is resampled from `rec.years`, and biology can be either
 averaged over `ave.years` or sampled from the GMRF process models.
+
+`referencepoints` locates deterministic reference points on a biology
+and selectivity averaged over chosen years: per-recruit points such as
+`Fmax` and `F35%SPR` on any fit, plus SR-equilibrium points such as
+`Fmsy`, `F0.2B0`, and (for compensatory Beverton-Holt) `Fcrash` once
+the fit carries a Ricker or Beverton-Holt recruitment. Confidence
+intervals are propagated by the delta method over the joint precision.
+`hcr` and `icesAdviceRule` run year-by-year stochastic projections
+under a trapezoidal $\bar F$-vs-SSB harvest control rule. Both mirror
+the reference-point catalogue of SAM's `stockassessment` package
+(Albertsen & Trijoulet, 2020).
 
 ## Repository layout
 
@@ -281,7 +323,7 @@ samjr/
     data/            # nscodData, nscodConf, nscodParameters
     man/             # roxygen-generated .Rd files
     tools/           # build-nscod-data.R
-  testmore/          # 19 end-to-end test cases (script.R + res.EXP)
+  testmore/          # 28 end-to-end test cases (script.R + res.EXP)
   Makefile           # see `make help`
 ```
 

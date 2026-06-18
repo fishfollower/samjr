@@ -1,12 +1,18 @@
 Package: samjr
 Type: Package
 Title: Minimal RTMB Re-Implementation of SAM
-Version: 0.0.2
-Authors@R: person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut", "cre"))
+Version: 0.0.3
+Authors@R: c(
+    person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut", "cre")),
+    person(c("Christoffer", "Moesgaard"), "Albertsen", email = "cmoe@aqua.dtu.dk", role = "aut"))
 Description: Provides a small subset of the SAM stockassessment user interface
     (read.ices, setup.sam.data, defcon, defpar, sam.fit) backed by a pure-R
     RTMB implementation of the state-space age-structured assessment model.
     First version mirrors the workflow used in SAM/testmore/nscod/script.R.
+    Also includes deterministic per-recruit and equilibrium reference points
+    (referencepoints, perRecruitClosure) with delta-method confidence
+    intervals, plus stochastic harvest control rule projections (hcr,
+    icesAdviceRule), mirroring SAM's stockassessment reference points.
 License: GPL-2
 Depends: R (>= 3.5.0), RTMB
 Imports: Matrix, methods, stats, utils, graphics, grDevices, parallel

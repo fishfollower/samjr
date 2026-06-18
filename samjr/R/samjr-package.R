@@ -7,6 +7,12 @@
 ##' helpers (\code{\link{ssbplot}}, \code{\link{fbarplot}}, \code{\link{recplot}},
 ##' \code{\link{catchplot}}) mirror the corresponding SAM functions.
 ##'
+##' Also provides deterministic per-recruit and equilibrium reference points
+##' (\code{\link{referencepoints}}, \code{\link{perRecruitClosure}}) with
+##' delta-method confidence intervals, plus stochastic harvest control rule
+##' projections (\code{\link{hcr}}, \code{\link{icesAdviceRule}}), mirroring the
+##' reference-point catalogue of SAM's \code{stockassessment} package.
+##'
 ##' @name samjr-package
 ##' @aliases samjr
 ##' @keywords package
@@ -16,6 +22,7 @@
 ##' @importFrom stats nlminb complete.cases median quantile rnorm na.omit
 ##' @importFrom utils read.table capture.output
 ##' @importFrom graphics lines points polygon grid par
+##' @importFrom graphics plot.new
 ##' @importFrom grDevices gray rgb
 "_PACKAGE"
 

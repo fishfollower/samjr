@@ -1,0 +1,7 @@
+Fmax      Low  diff = 0.0005
+Fmax      High diff = 0.0005
+F0.1dYPR  Low  diff = 0.0002
+F0.1dYPR  High diff = 0.0001
+F35%SPR   Low  diff = 0.0000
+F35%SPR   High diff = 0.0002
+max diff <= 0.05 : TRUE

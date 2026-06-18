@@ -1,0 +1,5 @@
+ssbplot.samref_hcr:   TRUE
+fbarplot.samref_hcr:  TRUE
+recplot.samref_hcr:   TRUE
+catchplot.samref_hcr: TRUE
+plot.samref_hcr:      TRUE

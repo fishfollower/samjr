@@ -13,8 +13,20 @@ implementation of the state-space age-structured assessment model. Plotting
 helpers (\code{\link{ssbplot}}, \code{\link{fbarplot}}, \code{\link{recplot}},
 \code{\link{catchplot}}) mirror the corresponding SAM functions.
 }
+\details{
+Also provides deterministic per-recruit and equilibrium reference points
+(\code{\link{referencepoints}}, \code{\link{perRecruitClosure}}) with
+delta-method confidence intervals, plus stochastic harvest control rule
+projections (\code{\link{hcr}}, \code{\link{icesAdviceRule}}), mirroring the
+reference-point catalogue of SAM's \code{stockassessment} package.
+}
 \author{
 \strong{Maintainer}: Anders Nielsen \email{fishfollower@gmail.com}
+
+Authors:
+\itemize{
+  \item Christoffer Moesgaard Albertsen \email{cmoe@aqua.dtu.dk}
+}
 
 }
 \keyword{package}
