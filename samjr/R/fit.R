@@ -73,10 +73,14 @@ drawConvPlot <- function(nllVec, maxgrVec){
 ##'
 ##' @param data data object from \code{\link{setup.sam.data}}.
 ##' @param conf configuration list from \code{\link{defcon}}.
+##' @param spinoutyear extra years appended to the GMRF biology matrices.
+##' @param warn if \code{TRUE}, warn about close-kin pairs that carry no
+##' information and are excluded from the likelihood. Only \code{\link{sam.fit}}
+##' sets this, so the message appears once per fit.
 ##' @return a list of arrays and integer keys.
 ##' @keywords internal
 ##' @noRd
-toBabyDat <- function(data, conf, spinoutyear = 10){
+toBabyDat <- function(data, conf, spinoutyear = 10, warn = FALSE){
   dat <- list()
   dat$logobs      <- data$logobs
   dat$aux         <- data$aux
@@ -202,6 +206,55 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
     diag(Wp) <- -Matrix::rowSums(Wp)
     dat$Wc <- Wc; dat$Wd <- Wd; dat$Wp <- Wp
   }
+
+  ## ---- close-kin mark-recapture ----
+  ## Every index the close-kin probabilities need is a function of the pair
+  ## table and the model dimensions only, so it is built once here and cached;
+  ## the likelihood then does nothing but whole-vector gathers.
+  set <- ckmrSettings(conf)
+  dat$usePOP    <- set$usePOP
+  dat$useHSP    <- set$useHSP
+  dat$ckmrPsi   <- set$psi
+  dat$ckmrScale <- set$scale
+  dat$ckmrEstPsi <- set$estPsi
+  hasCK <- !is.null(data$ckmr) && nrow(data$ckmr) > 0 &&
+           (set$usePOP == 1L || set$useHSP == 1L)
+  if(hasCK){
+    ck   <- ckmrCheck(data$ckmr)
+    prep <- ckmrPrep(ck, dat$year, dat$age,
+                     propMat = if(mom == 0) data$propMat else NULL)
+    nDropP <- nrow(ck) - length(prep$popRow)
+    nDropH <- nrow(ck) - length(prep$hspRow)
+    if(set$usePOP == 1L && length(prep$popRow) == 0L)
+      stop("conf$usePOP is on but no pair contributes a parent-offspring probability")
+    if(set$useHSP == 1L && length(prep$hspRow) == 0L)
+      stop("conf$useHSP is on but no pair contributes a half-sibling probability")
+    if(warn && set$usePOP == 1L && nDropP > 0L)
+      warning(nDropP, " of ", nrow(ck), " CKMR pairs excluded from the POP ",
+              "likelihood (birth year before the model starts, parent sampled ",
+              "before the offspring was born, or no mature candidate parent age)")
+    if(warn && set$useHSP == 1L && nDropH > 0L)
+      warning(nDropH, " of ", nrow(ck), " CKMR pairs excluded from the HSP ",
+              "likelihood (same cohort, or birth year before the model starts)")
+    swPos <- data$stockMeanWeight[is.finite(data$stockMeanWeight) &
+                                  data$stockMeanWeight > 0]
+    dat$ckmrSWref  <- if(length(swPos) > 0) exp(mean(log(swPos))) else 1
+    dat$useCKMR    <- 1L
+    dat$ckmrPrep   <- prep
+    dat$ckmrPOPobs <- ck$nPOP[prep$popRow]
+    dat$ckmrHSPobs <- ck$nHSP[prep$hspRow]
+    dat$ckmrNpop   <- ck$nComp[prep$popRow]
+    dat$ckmrNhsp   <- ck$nComp[prep$hspRow]
+  }else{
+    dat$ckmrEstPsi <- 0L
+    dat$ckmrSWref  <- 1
+    dat$useCKMR    <- 0L
+    dat$ckmrPrep   <- NULL
+    dat$ckmrPOPobs <- numeric(0)
+    dat$ckmrHSPobs <- numeric(0)
+    dat$ckmrNpop   <- numeric(0)
+    dat$ckmrNhsp   <- numeric(0)
+  }
   dat
 }
 
@@ -298,7 +351,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
                     rm.unidentified = FALSE, lower = NULL, upper = NULL,
                     newtonsteps = 3, run = TRUE, silent = FALSE,
                     convplot = FALSE, logSRfun = NULL, logSRinit = NULL, ...){
-  dat <- toBabyDat(data, conf)
+  dat <- toBabyDat(data, conf, warn = TRUE)
   if(!is.null(logSRfun)){
     if(!is.function(logSRfun)) stop("logSRfun must be a function of (S, pv)")
     if(is.null(logSRinit)) stop("logSRinit must be supplied when logSRfun is set")

@@ -17,7 +17,8 @@ setup.sam.data(
   prop.f = NULL,
   prop.m = NULL,
   land.frac = NULL,
-  recapture = NULL
+  recapture = NULL,
+  ckmr = NULL
 )
 }
 \arguments{
@@ -46,6 +47,15 @@ setup.sam.data(
 \item{land.frac}{year-by-age landing fraction.}
 
 \item{recapture}{reserved for future use; must be \code{NULL}.}
+
+\item{ckmr}{optional close-kin mark-recapture pair table as produced by
+\code{\link{ckmrData}} or \code{\link{simulateCKMR}}: one row per pair of
+(year, age) sampling cells, with columns \code{year1}, \code{age1},
+\code{year2}, \code{age2}, \code{nComp} and the observed kin counts
+\code{nPOP} and \code{nHSP}. Stored as the \code{ckmr} element of the
+returned list rather than as a fleet, because the pair table is not
+year-by-age rectangular. Switched on with \code{conf$usePOP} /
+\code{conf$useHSP}.}
 }
 \value{
 a list of class \code{sam_data} containing fleet metadata

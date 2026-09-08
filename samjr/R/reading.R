@@ -267,6 +267,14 @@ read.data.files <- function(dir = "."){
 ##' @param prop.m year-by-age proportion of M before spawning.
 ##' @param land.frac year-by-age landing fraction.
 ##' @param recapture reserved for future use; must be \code{NULL}.
+##' @param ckmr optional close-kin mark-recapture pair table as produced by
+##' \code{\link{ckmrData}} or \code{\link{simulateCKMR}}: one row per pair of
+##' (year, age) sampling cells, with columns \code{year1}, \code{age1},
+##' \code{year2}, \code{age2}, \code{nComp} and the observed kin counts
+##' \code{nPOP} and \code{nHSP}. Stored as the \code{ckmr} element of the
+##' returned list rather than as a fleet, because the pair table is not
+##' year-by-age rectangular. Switched on with \code{conf$usePOP} /
+##' \code{conf$useHSP}.
 ##' @return a list of class \code{sam_data} containing fleet metadata
 ##' (\code{fleetTypes}, \code{sampleTimes}, \code{minAgePerFleet},
 ##' \code{maxAgePerFleet}), the observation table (\code{aux}, \code{logobs},
@@ -280,7 +288,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
                            catch.mean.weight = NULL, dis.mean.weight = NULL,
                            land.mean.weight = NULL, natural.mortality = NULL,
                            prop.f = NULL, prop.m = NULL, land.frac = NULL,
-                           recapture = NULL){
+                           recapture = NULL, ckmr = NULL){
   if(!is.null(fleets))
     stop("samjr v1: 'fleets' (commercial fleets with effort) not supported")
   if(is.null(residual.fleet))
@@ -458,6 +466,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     propF = cutY(prop.f),
     propM = cutY(prop.m)
   )
+  if(!is.null(ckmr)) ret$ckmr <- ckmrCheck(ckmr)
   attr(ret, "fleetNames") <- name
   class(ret) <- "sam_data"
   ret

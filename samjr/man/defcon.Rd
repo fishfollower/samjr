@@ -45,5 +45,19 @@ correlation parameters.}
 optional catch-scaling configuration; see \code{\link{sam.fit}}.}
 \item{\code{fbarRange}}{integer vector of length two giving the age range
 used to compute average fishing mortality (\eqn{\bar F}).}
+\item{\code{usePOP}, \code{useHSP}}{switch the close-kin
+parent-offspring and half-sibling likelihood contributions on (1) or off
+(0). Both default to 0 and require a \code{ckmr} pair table on the data
+object; see \code{\link{ckmrData}}.}
+\item{\code{ckmrPsi}}{exponent in the per-capita reproductive output
+\eqn{fec = MO \cdot SW^{\psi}}. Fixed at this value unless
+\code{ckmrEstimatePsi} is 1, in which case it is the starting value.}
+\item{\code{ckmrEstimatePsi}}{if 1, estimate \eqn{\psi} as
+\eqn{\exp(\texttt{logPsim1}) + 1} (so \eqn{\psi > 1}) instead of holding
+it fixed. Only has an effect when close-kin data are in use. Default 0.}
+\item{\code{ckmrScale}}{multiplier converting model numbers-at-age to
+individuals. Close-kin probabilities are inversely proportional to absolute
+abundance, so this must match the units of the catch data (e.g. 1000 when
+the catch is in thousands).}
 }
 }

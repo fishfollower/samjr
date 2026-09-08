@@ -320,6 +320,31 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       }
     }
 
+    if(useCKMR == 1L){
+      ## one shared engine, driven entirely by precomputed integer gathers.
+      ## SW / MO / M are the smoothed versions here when the corresponding
+      ## GMRF biology processes are switched on.
+      ## OBS() only registers an observation when the result is assigned back
+      ## to the same name - that is what lets obj$simulate() redraw the counts.
+      ckmrPOPobs <- OBS(ckmrPOPobs)
+      ckmrHSPobs <- OBS(ckmrHSPobs)
+      psi <- if(ckmrEstPsi == 1L) exp(logPsim1[1]) + 1 else ckmrPsi
+      ## SW is normalised by a fixed constant before exponentiating: the
+      ## probabilities depend on fec only through ratios, so this is exactly
+      ## invariant, but it keeps SW^psi from underflowing when weights are < 1.
+      prCK <- ckmrProb(exp(logN) * ckmrScale, F + M,
+                       MO * (SW / ckmrSWref)^psi, ckmrPrep)
+      if(ckmrEstPsi == 1L) ADREPORT(psi)
+      if(usePOP == 1L)
+        jnll <- jnll - sum(dpois(ckmrPOPobs,
+                  prCK$pPOP[ckmrPrep$popRow] * ckmrNpop, log = TRUE))
+      if(useHSP == 1L)
+        jnll <- jnll - sum(dpois(ckmrHSPobs,
+                  prCK$pHSP[ckmrPrep$hspRow] * ckmrNhsp, log = TRUE))
+      pPOP <- prCK$pPOP; pHSP <- prCK$pHSP
+      REPORT(pPOP); REPORT(pHSP)
+    }
+
     N <- exp(logN)
     Z <- F + M
     cAA <- N * (F / Z) * (1 - exp(-Z))

@@ -46,6 +46,13 @@ defpar <- function(data, conf, spinoutyear = 10){
     par$logitReleaseSurvival <- numeric(0)
     par$logitRecapturePhi    <- numeric(0)
   }
+  if(dat$useCKMR == 1L && dat$ckmrEstPsi == 1L){
+    if(dat$ckmrPsi <= 1)
+      stop("conf$ckmrPsi must exceed 1 when conf$ckmrEstimatePsi is 1")
+    par$logPsim1 <- log(dat$ckmrPsi - 1)
+  }else{
+    par$logPsim1 <- numeric(0)
+  }
   par$logIGARdist <- if(sum(dat$covType == 1) == 0) numeric(0)
                      else numeric(max(dat$keyIGAR, na.rm = TRUE))
   par$parUS <- unlist(lapply(seq_along(dat$covType), function(f)

@@ -7,6 +7,11 @@
 ##' observation distributions are redrawn, so RTMB never has to simulate
 ##' the state-space recurrences.
 ##'
+##' When the fit carries close-kin data and \code{conf$usePOP} /
+##' \code{conf$useHSP} are on, the parent-offspring and half-sibling counts
+##' are redrawn alongside the other observations and written back into the
+##' \code{ckmr} pair table of each simulated data set.
+##'
 ##' @param object a fitted \code{sam} object from \code{\link{sam.fit}}.
 ##' @param nsim number of simulated data sets.
 ##' @param seed optional random seed.
@@ -35,6 +40,12 @@ simulate.sam <- function(object, nsim = 1, seed = NULL, full.data = TRUE, ...){
     sval <- objnew$simulate(est)
     if(full.data){
       out <- c(data2[names(data2) != "logobs"], sval["logobs"])
+      if(!is.null(data2$ckmr) && !is.null(sval$ckmrPOPobs)){
+        ck <- data2$ckmr
+        ck$nPOP[dat$ckmrPrep$popRow] <- sval$ckmrPOPobs
+        ck$nHSP[dat$ckmrPrep$hspRow] <- sval$ckmrHSPobs
+        out$ckmr <- ck
+      }
       attr(out, "fleetNames") <- attr(object$data, "fleetNames")
       out
     }else{

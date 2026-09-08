@@ -64,6 +64,15 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
   data$landMeanWeight  <- cutMat(data$landMeanWeight)
   data$landFrac        <- cutMat(data$landFrac)
 
+  ## close-kin pairs referring to sampling years that no longer exist must go;
+  ## pairs whose birth year falls before the (possibly later) model start are
+  ## dropped downstream by ckmrPrep.
+  if(!is.null(data$ckmr)){
+    ck <- data$ckmr
+    keep <- (ck$year1 %in% data$years) & (ck$year2 %in% data$years)
+    data$ckmr <- if(any(keep)) ck[keep, , drop = FALSE] else NULL
+  }
+
   data$aux[, "fleet"] <- match(data$aux[, "fleet"], suf)
   data$minAgePerFleet <- tapply(as.integer(data$aux[, "age"]),
                                 INDEX = data$aux[, "fleet"], FUN = min)

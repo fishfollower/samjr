@@ -7,7 +7,7 @@ samjr trades C++ for readable R while keeping bit-identical fits to SAM
 on every test case shipped with the package.
 
 > **Status.** A small subset of SAM, with the canonical North Sea cod
-> workflow as the reference example. All 29 testmore scripts pass: the
+> workflow as the reference example. All 31 testmore scripts pass: the
 > fit-based cases are bit-identical to a SAM 0.12.0 reference, and the
 > reference-point cases match SAM 0.12.0 within documented tolerances.
 
@@ -244,6 +244,76 @@ Toggle each process with `conf$stockWeightModel`,
 `conf$catchWeightModel`, `conf$matureModel`,
 `conf$mortalityModel` (`0` = data, `1` or `2` = GMRF).
 
+### Close-kin mark-recapture
+
+Genotyped individuals can be compared pairwise and scored as kin. Given a
+table of $(y_1,a_1)$ vs $(y_2,a_2)$ sampling cells with $n_{\text{comp}}$
+comparisons each, samjr adds a Poisson pseudo-likelihood for the number of
+parent-offspring (POP) and half-sibling (HSP) pairs found. Write
+$fec_{a,y} = \mathrm{MO}_{a,y}\,\mathrm{SW}_{a,y}^{\psi}$ for per-capita
+reproductive output and $\mathrm{TRO}_y = \sum_a N_{a,y}\,fec_{a,y}$ for the
+total. For an adult observed at age $a_p$ in year $y_p$ and an offspring born
+in year $b \le y_p$,
+
+```math
+P_{\mathrm{POP}} = \frac{2}{\mathrm{TRO}_b}\;
+  \frac{\sum_{a'} N_{a',b}\; S(a', b \to y_p)\; fec_{a',b}}{N_{a_p, y_p}},
+\qquad
+S(a', b \to y_p) = \exp\Big(-\!\!\sum_{k=0}^{y_p-b-1}\!\! Z_{\min(A,\,a'+k),\, b+k}\Big)
+```
+
+where $a'$ runs over the ages at $b$ that land in the observed class at $y_p$.
+Away from the plus group that is a single age and the expression collapses to
+$2\,fec_{a_p-\mathrm{lag},\,b}/\mathrm{TRO}_b$; in the plus group the adult's
+age at $b$ is only bounded below, so fecundity is averaged over the
+possibilities. For two animals born in $b_1 < b_2$,
+
+```math
+P_{\mathrm{HSP}} = \frac{4}{\mathrm{TRO}_{b_1}\mathrm{TRO}_{b_2}}
+  \sum_a N_{a,b_1}\; fec_{a,b_1}\; fec_{\min(A,\,a+d),\,b_2}\;
+  S(a, b_1 \to b_2), \qquad d = b_2-b_1 .
+```
+
+Both are implemented once, in `samjr/R/ckmr.R`, and shared by the likelihood
+and by `simulateCKMR`. Every index they need (birth years, candidate parent-age
+ranges, cumulative-$Z$ paths) depends only on the pair table and the model
+dimensions, so it is precomputed outside the AD tape and the evaluation is
+whole-vector gathers with a single recursion over the cohort lag.
+
+```r
+fit0 <- sam.fit(dat, conf, defpar(dat, conf))
+fit0$conf$ckmrScale <- 1000            # numbers-at-age are in thousands
+
+## simulate a study design, or build a real one with ckmrData()
+ckmr <- simulateCKMR(fit0, years = 2010:2014, n = rep(20000, 5))
+
+dat2 <- setup.sam.data(..., ckmr = ckmr)
+conf$ckmrScale <- 1000; conf$usePOP <- 1; conf$useHSP <- 1
+fit <- sam.fit(dat2, conf, defpar(dat2, conf))
+ckmrtable(fit); ckmrplot(fit)
+```
+
+By default CKMR adds no estimated parameters: $\psi$ (`conf$ckmrPsi`) and the
+abundance scale (`conf$ckmrScale`, the multiplier from model numbers to
+individuals) are both fixed. Close-kin probabilities are inversely proportional
+to absolute abundance, so `ckmrScale` must match the units of the catch data.
+Setting `conf$ckmrEstimatePsi <- 1` estimates $\psi$ instead, as
+$\exp(\texttt{logPsim1}) + 1$ so that $\psi > 1$; it is then `ADREPORT`ed with a
+delta-method standard error. Note that the half-sibling likelihood can be
+bimodal in $\psi$, so seed such a fit from the baseline assessment rather than
+from `defpar` defaults (`testmore/babyM/script.R` shows the pattern).
+
+The standard CKMR assumptions apply and are worth stating: sampling is lethal
+(an adult cannot be the parent of an animal born after it was sampled); the sex
+ratio is 50:50 with the same fecundity-at-age in both sexes, which is what makes
+the factors 2 and 4 correct; cross-cohort full siblings are negligible, so the
+half-sibling expression is really $E[\#\text{shared parents}]$; same-cohort
+pairs carry no half-sibling information here and are dropped; survival between
+birth years uses whole-year $Z$ sums, ignoring the `propF`/`propM` within-year
+spawning offset; and the pairs are not independent, so this is a composite
+likelihood and nominal standard errors on CKMR-informed quantities are
+optimistic.
+
 ### Estimation
 
 Random effects are
@@ -285,6 +355,8 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `parseRefpoint` | parse a reference-point spec (`"MSY"`, `"0.35SPR"`, `"F=0.2"`, ...) |
 | `hcr`, `icesAdviceRule`, `hcrFun` | stochastic harvest control rule projections |
 | `addRecruitmentCurve` | overlay the fitted SR curve (with CI) on `srplot` |
+| `ckmrData`, `simulateCKMR` | build / simulate a close-kin mark-recapture pair table |
+| `ckmrtable`, `ckmrplot` | observed vs expected close-kin pair counts |
 | `retro`, `runwithout`, `leaveout`, `mohn` | retrospective and leave-one-out tools |
 | `jit` | jitter starting values, refit |
 | `simulate`, `simstudy` | simulate from the fitted model / parametric bootstrap |
@@ -319,7 +391,8 @@ the reference-point catalogue of SAM's `stockassessment` package
 ```
 samjr/
   samjr/             # the R package
-    R/               # source (see R/likelihood.R for the model)
+    R/               # source (see R/likelihood.R for the model,
+                     #          R/ckmr.R for close-kin mark-recapture)
     data/            # nscodData, nscodConf, nscodParameters
     man/             # roxygen-generated .Rd files
     tools/           # build-nscod-data.R

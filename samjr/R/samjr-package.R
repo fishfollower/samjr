@@ -45,5 +45,8 @@ utils::globalVariables(c(
   "meanLogSW", "meanLogitMO", "minAge", "minYear", "moNobs", "mortalityModel",
   "nmNobs", "parUS", "predVarObs", "predVarObsLink", "rickerpar",
   "sampleTimes", "scaleIdxByObs", "srmode", "stockWeightModel", "swNobs",
-  "tagNscan", "tagR", "tagTypeIdx", "weight", "xtraSdIdxByObs", "year"
+  "tagNscan", "tagR", "tagTypeIdx", "weight", "xtraSdIdxByObs", "year",
+  "useCKMR", "usePOP", "useHSP", "ckmrPsi", "ckmrScale", "ckmrPrep",
+  "ckmrPOPobs", "ckmrHSPobs", "ckmrNpop", "ckmrNhsp",
+  "ckmrEstPsi", "logPsim1", "ckmrSWref"
 ))

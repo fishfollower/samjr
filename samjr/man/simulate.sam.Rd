@@ -30,3 +30,9 @@ fills, and the biology processes \code{logSW}/\code{logCW}/
 observation distributions are redrawn, so RTMB never has to simulate
 the state-space recurrences.
 }
+\details{
+When the fit carries close-kin data and \code{conf$usePOP} /
+\code{conf$useHSP} are on, the parent-offspring and half-sibling counts
+are redrawn alongside the other observations and written back into the
+\code{ckmr} pair table of each simulated data set.
+}
