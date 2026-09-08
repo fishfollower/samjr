@@ -222,7 +222,8 @@ toBabyDat <- function(data, conf, spinoutyear = 10, warn = FALSE){
   if(hasCK){
     ck   <- ckmrCheck(data$ckmr)
     prep <- ckmrPrep(ck, dat$year, dat$age,
-                     propMat = if(mom == 0) data$propMat else NULL)
+                     propMat = if(mom == 0) data$propMat else NULL,
+                     plusExtra = set$plusExtra, plusNodes = set$plusNodes)
     nDropP <- nrow(ck) - length(prep$popRow)
     nDropH <- nrow(ck) - length(prep$hspRow)
     if(set$usePOP == 1L && length(prep$popRow) == 0L)

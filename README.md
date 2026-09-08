@@ -274,6 +274,38 @@ P_{\mathrm{HSP}} = \frac{4}{\mathrm{TRO}_{b_1}\mathrm{TRO}_{b_2}}
   S(a, b_1 \to b_2), \qquad d = b_2-b_1 .
 ```
 
+The plus group makes both birth years uncertain as well: an animal recorded at
+`maxAge` is that age *or older*, so its birth year is only bounded above. Since
+$b_1$ and $b_2$ enter $P_{\mathrm{HSP}}$ directly, such a pair is averaged over
+the birth years its members could have had, weighted by the plus-group age
+composition. That composition follows from the model's own accumulation rule -
+each year the class gains those turning `maxAge` and keeps last year's
+survivors - so the number in the plus group at $y$ born in $b$ is
+$N_{A-1,y'-1}e^{-Z_{A-1,y'-1}}\exp(-\sum_{k=y'}^{y-1} Z_{A,k})$ with $y'$ the
+year that cohort reached `maxAge`. Two settings control the cost. `conf$ckmrPlusExtra` (default 10) caps how far
+back the average reaches at all, which matters on long series where the plus
+group would otherwise nominally admit an animal as old as the series.
+`conf$ckmrPlusNodes` (default 6) sets how many of those candidate birth years
+are resolved one by one; the rest are lumped into a single node whose weight is
+still summed exactly, so no mass is lost and only the birth year within the
+lump is approximated. The weights fall off geometrically - on the mackerel
+example the first six carry 99% of them - so this is close to free: six nodes
+run 1.8 times faster than resolving all eleven and shift the objective by
+0.0004%, against the 5.3 nll units the correction itself is worth.
+
+The weights are normalised to sum to one within each sampling year.
+Reconstructing the plus group by the survival recursion and dividing by
+$N_{A,y}$ would only give a distribution if the class accumulated
+deterministically, and SAM's $N$ carries process noise - on the mackerel fit
+the reconstruction comes to 1.12 times $N_{A,y}$. Normalising also puts the
+truncated tail back proportionally rather than discarding it.
+
+Left uncorrected this term is biased: against an individual-based pedigree
+simulation it recovers only about 75% of the half-sibling pairs involving a
+plus-group animal, and about 99% with the correction in place. Note also that
+the same-cohort configuration stays in the average for such pairs - they cannot
+be recognised as same-cohort, so they cannot be excluded from the data either.
+
 Both are implemented once, in `samjr/R/ckmr.R`, and shared by the likelihood
 and by `simulateCKMR`. Every index they need (birth years, candidate parent-age
 ranges, cumulative-$Z$ paths) depends only on the pair table and the model

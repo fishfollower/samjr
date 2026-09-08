@@ -12,7 +12,7 @@ DATA_FILES := $(wildcard $(PKGDIR)/data/*.rda)
 
 TESTMORE_DIR     := $(CURDIR)/testmore
 TESTMORE_DIRS    := $(patsubst $(TESTMORE_DIR)/%/script.R,%,$(wildcard $(TESTMORE_DIR)/*/script.R))
-TESTMORE_TIMEOUT ?= 300
+TESTMORE_TIMEOUT ?= 600
 TESTMORE_STATUS  := $(TESTMORE_DIR)/.status
 
 .PHONY: all doc install build check clean data help readme testmore testmore-prep testmore-summary $(addprefix testmore-,$(TESTMORE_DIRS))

@@ -183,20 +183,63 @@ scale.
 
 Where ages are known exactly the formulas reproduce the pedigree. Over ten
 independent pedigrees the ratio of observed to predicted kin is 0.997
-(p = 0.72) for parent-offspring pairs and 0.999 (p = 0.90) for half-siblings
-on rows with no plus-group animal. The plus-group POP treatment also holds up,
-at 1.009.
+(p = 0.72) for parent-offspring pairs and 0.996 (p = 0.69) for half-siblings
+on rows with no plus-group animal. The plus-group POP treatment holds up at
+1.009.
 
-Half-siblings involving a plus-group animal are a different matter: the ratio
-there is about 0.75. This is a real limitation, not a defect in the
-implementation. 58% of sampled age-12 fish are in fact older, because the plus
-group lumps every age from 12 upward, so their recorded birth year is too late
-and the model computes the wrong cohort gap. The POP expression averages over
-the ages a plus-group *parent* could have had, which is why it survives; there
-is no equivalent averaging over a plus-group animal's own birth year in the
-half-sibling term, and adding one would require carrying a distribution over
-its true age through both `b1` and `b2`. Until then, close-kin sampling
-designs should treat plus-group animals with caution, or exclude them.
+The check originally showed half-siblings involving a plus-group animal
+running at about 0.75, and that is what prompted the plus-group birth-year
+marginalisation now in `ckmrProb`. 58% of sampled age-12 fish are in fact
+older, because the plus group lumps every age from 12 upward, so their
+recorded birth year is too late and the model was computing the wrong cohort
+gap. The POP expression already averaged over the ages a plus-group *parent*
+could have had; the half-sibling term now averages over the birth years the
+two sampled animals could have had, weighted by the plus-group age
+composition. The composition was checked against the pedigree directly and is
+exact - predicted plus-group size 8926 against an actual 8929, with the
+per-birth-year breakdown at 1.0.
+
+Two details were needed to make that average right:
+
+* The same-cohort configuration has to stay in it. Recorded same-cohort pairs
+  are excluded as before, but a pair whose members *could* be same-cohort
+  cannot be recognised as such, so it cannot be excluded from the data either.
+  5.8% of the observed half-siblings on plus-group rows turned out to be truly
+  same-cohort; dropping that configuration left them observed but never
+  predicted, and overshot to 1.13.
+* The average must be capped and coarsened, or it is far too slow. The cost is
+  not the number of terms - evaluating the probability once per distinct
+  `(b1, b2)` pair rather than once per expansion cut those tenfold and changed
+  nothing measurable. It is that marginalising couples `logN` across many more
+  year pairs, densifying the random-effects Hessian the Laplace approximation
+  factorises. Two settings bound it. `conf$ckmrPlusExtra` (default 10) caps how
+  far back the average reaches: uncapped, nscod's 53-year series with a plus
+  group at age 6 nominally admits a 52-year-old fish, giving 2070 terms per
+  pair and a 37-fold slowdown. `conf$ckmrPlusNodes` (default 6) then resolves
+  only the leading candidate birth years individually and lumps the rest into
+  one node, summing its weight exactly so no mass is lost. On the mackerel case
+  the first six carry 99% of the weight, six nodes run 1.8 times faster than
+  all eleven, and the objective moves by 0.0004% - against the 5.3 nll units
+  the correction itself is worth (1894.76 corrected, 1900.03 uncorrected). The
+  pedigree check is indistinguishable from 3 nodes upward.
+
+The plus-group weights are normalised to sum to one within each sampling year.
+Reconstructing the plus group by the survival recursion and dividing by
+`N[y, A]` would only give a distribution if the class accumulated
+deterministically; SAM's `N` carries process noise, and on the mackerel fit the
+reconstruction comes to 1.12 times `N[y, A]`, which inflated the plus-group
+half-sibling probabilities by that much and by its square when both members
+were in the plus group. The individual-based check could not see this - the
+population `ibmConsistentN` builds satisfies the recursion exactly, so the
+reconstruction sums to 1.00 there by construction. It is the same blind spot
+that makes `simulateCKMR` unable to test the formulas, met from the other side.
+Normalising also restores the truncated tail proportionally rather than
+discarding it.
+
+
+After the correction all four ratios are consistent with one: 0.994 overall
+(p = 0.52) for half-siblings, 0.996 on rows with no plus-group animal,
+0.969 on plus-group rows (p = 0.42), and 0.997 for parent-offspring pairs.
 
 The IBM also produces a small number of parent-offspring pairs within a single
 (year, age) cell - impossible for known ages, but possible in the plus group,

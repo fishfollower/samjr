@@ -1,17 +1,17 @@
 base       580.2741
 nPOP       383
-nHSP       340
+nHSP       331
 npairs     946
 plusrows   158
 plusPOP    105
 babyMnil   19 5
 pop        1247.239
-hsp        1238.216
-pophsp     1905.163
+hsp        1221.048
+pophsp     1887.979
 psi.pop    1.4816
-psi.hsp    1.5808
-psi.pophsp 1.5091
+psi.hsp    1.5661
+psi.pophsp 1.5039
 ssb.base   3361399
-ssb.pophsp 3258421
-ciratio    0.7154
+ssb.pophsp 3254980
+ciratio    0.7155
 plot       TRUE

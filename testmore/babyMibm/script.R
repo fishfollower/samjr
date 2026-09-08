@@ -88,7 +88,9 @@ samp <- ibmSample(pop, years, ages, 2020:2023, rep(6000,4), rep(1,length(ages)))
 ckmr <- ibmKin(pop, samp)
 
 ## ---- does the pedigree agree with the probability formulas? ----
-prep <- samjr:::ckmrPrep(ckmr, years, ages, propMat=fit0$data$propMat)
+prep <- samjr:::ckmrPrep(ckmr, years, ages, propMat=fit0$data$propMat,
+                         plusExtra=conf0$ckmrPlusExtra,
+                         plusNodes=conf0$ckmrPlusNodes)
 prob <- samjr:::ckmrProb(Nc, Zmat, fecM, prep)
 rat <- function(col, rows, p){
   if(!length(rows)) return(NA)

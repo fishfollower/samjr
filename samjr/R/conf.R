@@ -60,6 +60,13 @@ setS <- function(x){
 ##' \item{\code{ckmrEstimatePsi}}{if 1, estimate \eqn{\psi} as
 ##' \eqn{\exp(\texttt{logPsim1}) + 1} (so \eqn{\psi > 1}) instead of holding
 ##' it fixed. Only has an effect when close-kin data are in use. Default 0.}
+##' \item{\code{ckmrPlusExtra}}{how many years beyond \code{maxAge} a
+##' plus-group animal's true age may reach when the half-sibling term
+##' marginalises over its unknown birth year. Default 10.}
+##' \item{\code{ckmrPlusNodes}}{how many of those candidate birth years are
+##' resolved individually; the rest are lumped into one node whose weight is
+##' still summed exactly. Default 6, which on a typical plus group carries
+##' about 99 percent of the weight in the resolved nodes.}
 ##' \item{\code{ckmrScale}}{multiplier converting model numbers-at-age to
 ##' individuals. Close-kin probabilities are inversely proportional to absolute
 ##' abundance, so this must match the units of the catch data (e.g. 1000 when
@@ -179,6 +186,8 @@ defcon <- function(dat, level = 1){
   ret$ckmrPsi <- 1.5
   ret$ckmrEstimatePsi <- 0
   ret$ckmrScale <- 1
+  ret$ckmrPlusExtra <- 10
+  ret$ckmrPlusNodes <- 6
   ret
 }
 

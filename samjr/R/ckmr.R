@@ -24,6 +24,17 @@ ckmrKey <- function(y1, a1, y2, a2){
 ##' \code{nHSP}).
 ##' @param years model year vector.
 ##' @param ages model age vector (\code{minAge:maxAge}).
+##' @param plusExtra how many years beyond \code{maxAge} a plus-group animal's
+##' true age is allowed to reach when its birth year is marginalised over. The
+##' weights fall off geometrically with the plus-group mortality, so the mass
+##' beyond a few years is negligible; capping keeps the expansion small on long
+##' time series, where the plus group would otherwise nominally admit an animal
+##' as old as the series itself.
+##' @param plusNodes how many of the leading candidate birth years are resolved
+##' one by one. The remainder, out to \code{plusExtra}, are lumped into a single
+##' node whose weight is still summed exactly, so no mass is lost - only the
+##' birth year within that lump is approximated. The weights fall off
+##' geometrically, so a handful of leading nodes carry almost all of it.
 ##' @param propMat optional observed proportion-mature matrix. When supplied
 ##' (i.e. maturity is data, not a GMRF process) it is used to drop pairs whose
 ##' probability is identically zero, which keeps \code{dpois} away from
@@ -31,7 +42,8 @@ ckmrKey <- function(y1, a1, y2, a2){
 ##' @return a list of integer index vectors consumed by \code{\link{ckmrProb}}.
 ##' @keywords internal
 ##' @noRd
-ckmrPrep <- function(ckmr, years, ages, propMat = NULL){
+ckmrPrep <- function(ckmr, years, ages, propMat = NULL, plusExtra = 10L,
+                     plusNodes = 6L){
   nY <- length(years); nA <- length(ages)
   minYear <- min(years); minAge <- min(ages)
   y1 <- as.integer(ckmr$year1); a1 <- as.integer(ckmr$age1)
@@ -77,25 +89,112 @@ ckmrPrep <- function(ckmr, years, ages, propMat = NULL){
   }
 
   ## ---- half-sibling ----
-  b1  <- pmin(c1, c2); b2 <- pmax(c1, c2)
-  b1I <- b1 - minYear + 1L; b2I <- b2 - minYear + 1L
-  dd  <- b2I - b1I
-  hspOK <- (dd >= 1L) &                                    # same cohort excluded
-           (b1I >= 1L) & (b1I <= nY) & (b2I >= 1L) & (b2I <= nY)
-  hspOK[is.na(hspOK)] <- FALSE
-  hspOK <- hspOK & troPos[pmax(1L, pmin(nY, b1I))] & troPos[pmax(1L, pmin(nY, b2I))]
+  ## Both birth years enter this probability directly, and an animal recorded
+  ## at the plus-group age has an unknown true age - so its birth year is only
+  ## bounded above. Each pair is therefore expanded over the birth years its
+  ## members could have had; ckmrProb weights the terms by the plus-group age
+  ## composition, which it derives from N and Z. An animal of known age
+  ## contributes a single term of weight one, so pairs with no plus-group
+  ## member take an unchanged single-term path.
+  y1I <- y1 - minYear + 1L; a1I <- a1 - minAge + 1L
+  y2I <- y2 - minYear + 1L; a2I <- a2 - minAge + 1L
+  plusNodes <- max(1L, as.integer(plusNodes))
+  ## Offsets covered by each node for a plus-group animal: the first
+  ## plusNodes offsets one by one, then a single lump out to plusExtra whose
+  ## representative sits one year past its start - the placement that tracks
+  ## the weighted average of a geometrically decaying weight most closely.
+  nodeBins <- function(bi){
+    maxO <- min(as.integer(plusExtra), bi - 1L)
+    if(maxO < 0L) return(list())
+    ex <- seq.int(0L, min(plusNodes - 1L, maxO))
+    out <- lapply(ex, function(o) list(rep = o, bin = o))
+    if(maxO >= plusNodes)
+      out <- c(out, list(list(rep = min(plusNodes, maxO) + 1L,
+                              bin = seq.int(plusNodes, maxO))))
+    out <- lapply(out, function(z){ z$rep <- min(z$rep, maxO); z })
+    out[vapply(out, function(z) all(bi - z$bin + nA + minAge - 2L >= 1L), logical(1))]
+  }
+  ## registry of (sampling year, node) pairs and the birth years each averages
+  regKey <- character(0); regY <- integer(0); regBin <- list()
+  registerNode <- function(yI, bi, nb){
+    k <- paste(yI, bi - nb$rep, sep = ".")
+    m <- match(k, regKey)
+    if(is.na(m)){
+      regKey <<- c(regKey, k); regY <<- c(regY, yI)
+      regBin[[length(regKey)]] <<- bi - nb$bin
+      m <- length(regKey)
+    }
+    m
+  }
+  ## returns representative birth years and, for plus-group animals, node ids
+  candBirth <- function(yI, aI){
+    bi <- yI - aI - minAge + 1L
+    if(is.na(bi) || bi < 1L) return(list(b = integer(0), node = integer(0)))
+    if(aI < nA || nA < 2L) return(list(b = bi, node = 0L))
+    nb <- nodeBins(bi)
+    if(!length(nb)) return(list(b = integer(0), node = integer(0)))
+    list(b = bi - vapply(nb, function(z) z$rep, integer(1)),
+         node = vapply(nb, function(z) registerNode(yI, bi, z), integer(1)))
+  }
+  inR <- function(v) !is.na(v) & v >= 1L & v <= nY
+  baseOK <- inR(y1I) & inR(y2I) & !is.na(a1I) & !is.na(a2I) &
+            a1I >= 1L & a1I <= nA & a2I >= 1L & a2I <= nA
+  biRec1 <- y1I - a1I - minAge + 1L
+  biRec2 <- y2I - a2I - minAge + 1L
+  acc <- vector("list", nPair)
+  for(i in seq_len(nPair)){
+    if(!baseOK[i]) next
+    ## a pair whose recorded cohorts agree is excluded, as before
+    if(!is.na(biRec1[i]) && !is.na(biRec2[i]) && biRec1[i] == biRec2[i]) next
+    c1 <- candBirth(y1I[i], a1I[i]); c2 <- candBirth(y2I[i], a2I[i])
+    k1 <- c1$b; k2 <- c2$b
+    if(!length(k1) || !length(k2)) next
+    g1 <- rep(k1, times = length(k2)); g2 <- rep(k2, each = length(k1))
+    n1 <- rep(c1$node, times = length(k2)); n2 <- rep(c2$node, each = length(k1))
+    ## When a plus-group member makes the cohorts ambiguous, the same-cohort
+    ## configuration has to stay in the average: such a pair cannot be
+    ## recognised as same-cohort and so cannot be excluded from the data
+    ## either, and dropping it here would leave those kin observed but never
+    ## predicted.
+    allowSame <- isTRUE(a1I[i] == nA) || isTRUE(a2I[i] == nA)
+    keep <- (allowSame | (g1 != g2)) & troPos[g1] & troPos[g2]
+    if(!any(keep)) next
+    acc[[i]] <- cbind(i, g1[keep], g2[keep], n1[keep], n2[keep])
+  }
+  EX <- do.call(rbind, acc)
+  if(is.null(EX)) EX <- matrix(integer(0), nrow = 0, ncol = 5)
+  hspOK <- logical(nPair)
+  if(nrow(EX) > 0) hspOK[unique(EX[, 1])] <- TRUE
+  isPlusPair <- (a1I == nA) & !is.na(a1I) | (a2I == nA) & !is.na(a2I)
+  isPlusPair[is.na(isPlusPair)] <- FALSE
 
   popRow <- which(popOK)
   hspRow <- which(hspOK)
+  hspSimpleRow <- which(hspOK & !isPlusPair)     # both ages known exactly
+  hspMargRow   <- which(hspOK &  isPlusPair)     # at least one plus-group animal
   simple <- popRow[aLo[popRow] == aHi[popRow]]
   plus   <- popRow[aLo[popRow] <  aHi[popRow]]
 
   ## ---- shared survival grid ----
   ## start years actually needed, and the largest lag over which a cohort has
   ## to be carried forward
-  uSet   <- sort(unique(c(bI[plus], b1I[hspRow])))
+  exB1 <- if(nrow(EX)) pmin(EX[, 2], EX[, 3]) else integer(0)
+  exB2 <- if(nrow(EX)) pmax(EX[, 2], EX[, 3]) else integer(0)
+  ## Many rows and expansions need the same pair of birth years, so the
+  ## half-sibling probability is evaluated once per distinct (b1, b2) and then
+  ## gathered. Both the single-term and the marginalised paths become lookups.
+  sb1 <- pmin(biRec1[hspSimpleRow], biRec2[hspSimpleRow])
+  sb2 <- pmax(biRec1[hspSimpleRow], biRec2[hspSimpleRow])
+  bbKey <- c(paste(sb1, sb2, sep = "."), paste(exB1, exB2, sep = "."))
+  ubb   <- unique(bbKey)
+  bbB1  <- as.integer(sub("[.].*", "", ubb))
+  bbB2  <- as.integer(sub(".*[.]", "", ubb))
+  bbD   <- bbB2 - bbB1
+  simpleIdx <- if(length(sb1)) match(paste(sb1, sb2, sep = "."), ubb) else integer(0)
+  exIdx     <- if(length(exB1)) match(paste(exB1, exB2, sep = "."), ubb) else integer(0)
+  uSet   <- sort(unique(c(bI[plus], bbB1)))
   nU     <- length(uSet)
-  maxLag <- max(c(lag[plus], dd[hspRow], 0L))
+  maxLag <- max(c(lag[plus], bbD, 0L))
   zLin <- vector("list", maxLag)
   if(maxLag > 0L && nU > 0L){
     Uu <- rep(seq_len(nU), times = nA)     # u varies fastest
@@ -138,20 +237,83 @@ ckmrPrep <- function(ckmr, years, ages, propMat = NULL){
     out$popPlusNpy <- out$popPlusTRO <- integer(0)
   }
 
-  ## HSP
-  nH <- length(hspRow)
-  if(nH > 0L){
-    Ah <- rep(seq_len(nA), each = nH)
-    out$hspLin1 <- rep(b1I[hspRow], times = nA) + (Ah - 1L) * nY
-    out$hspLin2 <- rep(b2I[hspRow], times = nA) +
-                   (pmin(nA, Ah + rep(dd[hspRow], times = nA)) - 1L) * nY
-    out$hspSurv <- survLin(dd[hspRow], b1I[hspRow], nH)
-    out$hspTRO1 <- b1I[hspRow]
-    out$hspTRO2 <- b2I[hspRow]
+  ## HSP, pairs whose members both have a known age: one term, weight one
+  nBB <- length(ubb)
+  out$hspSimpleRow <- hspSimpleRow
+  out$hspSimpleIdx <- simpleIdx
+  if(nBB > 0L){
+    Ab <- rep(seq_len(nA), each = nBB)
+    out$hspBBLin1 <- rep(bbB1, times = nA) + (Ab - 1L) * nY
+    out$hspBBLin2 <- rep(bbB2, times = nA) +
+                     (pmin(nA, Ab + rep(bbD, times = nA)) - 1L) * nY
+    out$hspBBSurv <- survLin(bbD, bbB1, nBB)
+    out$hspBBTRO1 <- bbB1
+    out$hspBBTRO2 <- bbB2
   }else{
-    out$hspLin1 <- out$hspLin2 <- out$hspSurv <- integer(0)
-    out$hspTRO1 <- out$hspTRO2 <- integer(0)
+    out$hspBBLin1 <- out$hspBBLin2 <- out$hspBBSurv <- integer(0)
+    out$hspBBTRO1 <- out$hspBBTRO2 <- integer(0)
   }
+
+  ## HSP, pairs with a plus-group member: expanded over candidate birth years
+  ## and padded to a rectangle, so the marginalisation is two matrix products.
+  ## Rows are grouped by how many of the two members are in the plus group, so
+  ## that pairs needing a handful of terms are not padded out to the square
+  ## count the two-plus-group pairs need.
+  nPlusMem <- as.integer(!is.na(a1I) & a1I == nA) + as.integer(!is.na(a2I) & a2I == nA)
+  mkMarg <- function(rows){
+    nM <- length(rows)
+    if(nM == 0L) return(list(nM = 0L, row = integer(0)))
+    mi <- match(EX[, 1], rows); kp <- !is.na(mi)
+    exM <- EX[kp, , drop = FALSE]; mi <- mi[kp]
+    o <- order(mi); exM <- exM[o, , drop = FALSE]; mi <- mi[o]
+    eNo <- stats::ave(seq_along(mi), mi, FUN = seq_along)
+    maxE <- max(eNo); nME <- nM * maxE
+    pos <- (eNo - 1L) * nM + mi
+    bbi <- rep(1L, nME); mask <- numeric(nME)
+    bbi[pos] <- exIdx[kp][o]
+    mask[pos] <- 1
+    slot <- function(nodeCol){
+      nd <- exM[, nodeCol]; isP <- nd > 0L
+      list(at = pos[isP], node = nd[isP])
+    }
+    list(nM = nM, row = rows, maxE = maxE, mask = mask, bbi = bbi,
+         w1 = slot(4L), w2 = slot(5L))
+  }
+  out$hspMarg <- list(mkMarg(which(hspOK & nPlusMem == 1L)),
+                      mkMarg(which(hspOK & nPlusMem == 2L)))
+  out$hspMargRow <- hspMargRow
+  ## Plus-group node weights. Each node averages a set of candidate birth
+  ## years; the weight of every (sampling year, birth year) pair is computed
+  ## once and summed into its node by a fixed incidence matrix, so no mass is
+  ## lost however coarsely the nodes are laid out.
+  nNode <- length(regKey)
+  out$nPlusNode <- nNode
+  if(nNode > 0L){
+    allY <- rep(regY, lengths(regBin)); allB <- unlist(regBin)
+    key <- paste(allY, allB, sep = ".")
+    uk  <- unique(key)
+    wYi <- as.integer(sub("[.].*", "", uk)); wBi <- as.integer(sub(".*[.]", "", uk))
+    yp  <- wBi + nA + minAge - 1L
+    out$wLin <- (yp - 1L) + (nA - 2L) * nY
+    out$wCy  <- wYi; out$wCyp <- yp
+    out$wDen <- wYi + (nA - 1L) * nY
+    M <- matrix(0, nNode, length(uk))
+    M[cbind(rep(seq_len(nNode), lengths(regBin)), match(key, uk))] <- 1
+    out$binMat <- M
+    out$nodeYear <- regY
+    ## Sums the nodes belonging to one sampling year, so the weights can be
+    ## normalised into a distribution over birth years. Reconstructing the
+    ## plus group by the survival recursion and dividing by N[y, A] would
+    ## only be a distribution if the plus group accumulated deterministically;
+    ## SAM's N carries process noise, and on the mackerel fit the
+    ## reconstruction comes to 1.12 times N[y, A] rather than 1. Normalising
+    ## also puts the truncated tail back in proportionally, instead of
+    ## discarding it.
+    out$normMat <- outer(regY, regY, "==") * 1
+  }
+  ## fixed lower-triangular accumulator for the plus-group column of Z
+  out$hspCumL <- outer(seq_len(nY), seq_len(nY), function(i, j) as.numeric(j < i))
+  out$hspZcol <- seq_len(nY) + (nA - 1L) * nY
   out
 }
 
@@ -175,6 +337,10 @@ ckmrPrep <- function(ckmr, years, ages, propMat = NULL){
 ##' below. For two juveniles born in \eqn{b_1 < b_2},
 ##' \deqn{P_{HSP} = \frac{4}{TRO_{b_1} TRO_{b_2}} \sum_a N_{a,b_1}\,
 ##'   fec_{a,b_1}\, fec_{\min(A, a + d), b_2}\, S(a, b_1 \to b_2).}
+##' An animal recorded at the plus-group age has an unknown true age, so its
+##' birth year is only bounded above. For such pairs the expression above is
+##' averaged over the birth years the members could have had, weighted by the
+##' plus-group age composition implied by \eqn{N} and \eqn{Z}.
 ##'
 ##' @param N year-by-age abundance, already on the individual scale.
 ##' @param Z year-by-age total mortality.
@@ -219,12 +385,47 @@ ckmrProb <- function(N, Z, fec, prep){
       2 * num / N[prep$popPlusNpy] / TRO[prep$popPlusTRO]
   }
 
-  nH <- length(prep$hspRow)
-  if(nH > 0L){
-    X <- N[prep$hspLin1] * fec[prep$hspLin1] * fec[prep$hspLin2] *
-         SURV[prep$hspSurv]
-    num <- as.vector(matrix(X, nH, nA) %*% ones)
-    pHSP[prep$hspRow] <- 4 * num / (TRO[prep$hspTRO1] * TRO[prep$hspTRO2])
+  nBB <- length(prep$hspBBTRO1)
+  if(nBB > 0L){
+    X <- N[prep$hspBBLin1] * fec[prep$hspBBLin1] * fec[prep$hspBBLin2] *
+         SURV[prep$hspBBSurv]
+    num <- as.vector(matrix(X, nBB, nA) %*% ones)
+    pBB <- 4 * num / (TRO[prep$hspBBTRO1] * TRO[prep$hspBBTRO2])
+    if(length(prep$hspSimpleRow) > 0L)
+      pHSP[prep$hspSimpleRow] <- pBB[prep$hspSimpleIdx]
+  }
+
+  ## Pairs with a plus-group member: the same expression per candidate birth
+  ## year, averaged over the plus-group age composition. That composition
+  ## follows from the model's own plus-group accumulation - each year the
+  ## class gains those turning maxAge and keeps the survivors of last year's
+  ## class - so the number in the plus group at year y born in year b is
+  ##   N[y'-1, A-1] exp(-Z[y'-1, A-1]) exp(-sum_{k=y'}^{y-1} Z[k, A]),
+  ## with y' the year that cohort reached maxAge. Dividing by N[y, A] turns it
+  ## into P(born in b | observed in the plus group at y). The weights need not
+  ## sum to one: the shortfall is animals born before the model starts, whose
+  ## probability cannot be evaluated, and which contribute zero here just as
+  ## they do elsewhere.
+  if(any(vapply(prep$hspMarg, function(g) g$nM > 0L, logical(1)))){
+    cumZ <- as.vector(prep$hspCumL %*% Z[prep$hspZcol])
+    wv <- N[prep$wLin] * exp(-Z[prep$wLin]) *
+          exp(-(cumZ[prep$wCy] - cumZ[prep$wCyp]))
+    ckmrPlusWeight <- as.vector(prep$binMat %*% wv)
+    ckmrPlusWeight <- ckmrPlusWeight /
+                      as.vector(prep$normMat %*% ckmrPlusWeight)
+    REPORT(ckmrPlusWeight)
+    for(g in prep$hspMarg){
+      if(g$nM == 0L) next
+      nME <- g$nM * g$maxE
+      pe <- pBB[g$bbi]
+      w <- rep(zero + 1, nME)
+      for(sl in list(g$w1, g$w2)){
+        if(length(sl$at) == 0L) next
+        w[sl$at] <- w[sl$at] * ckmrPlusWeight[sl$node]
+      }
+      w <- w * g$mask
+      pHSP[g$row] <- as.vector(matrix(pe * w, g$nM, g$maxE) %*% rep(1, g$maxE))
+    }
   }
 
   list(pPOP = pPOP, pHSP = pHSP, TRO = TRO)
@@ -262,7 +463,9 @@ ckmrSettings <- function(conf){
        useHSP = as.integer(g("useHSP", 0L)),
        psi    = as.numeric(g("ckmrPsi", 1.5)),
        scale  = as.numeric(g("ckmrScale", 1)),
-       estPsi = as.integer(g("ckmrEstimatePsi", 0L)))
+       estPsi = as.integer(g("ckmrEstimatePsi", 0L)),
+       plusExtra = as.integer(g("ckmrPlusExtra", 10L)),
+       plusNodes = as.integer(g("ckmrPlusNodes", 6L)))
 }
 
 ##' Build a close-kin mark-recapture pair table
@@ -385,7 +588,8 @@ simulateCKMR <- function(fit, years, n, selectivity = NULL, seed = NULL){
 
   prep <- ckmrPrep(ck, modYears, ages,
                    propMat = if(is.null(fit$conf$matureModel) ||
-                                fit$conf$matureModel == 0) fit$data$propMat else NULL)
+                                fit$conf$matureModel == 0) fit$data$propMat else NULL,
+                   plusExtra = set$plusExtra, plusNodes = set$plusNodes)
   N   <- ntable(fit) * set$scale
   Z   <- faytable(fit) + fit$data$natMor
   swPos <- fit$data$stockMeanWeight[is.finite(fit$data$stockMeanWeight) &
