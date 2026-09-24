@@ -8,7 +8,7 @@ test passes if `res.out` matches `res.EXP` byte-for-byte.
 Run all scripts and tally results with:
 
 ```
-./run-all.sh
+make testmore
 ```
 
 or, in parallel:
@@ -17,7 +17,10 @@ or, in parallel:
 make -j N testmore
 ```
 
-from the repository root.
+from the repository root. A subdirectory holding a file named `ignore`
+is skipped. `res.out` and `errlog.txt` are removed once the run has been
+summarised, so a full pass leaves the tree clean; running a single case
+with `make testmore-<dir>` leaves them in place for inspection.
 
 ## Current status: 19 pass bit-identical to reference
 

@@ -1,0 +1,14 @@
+base       580.2741
+npairs     171
+nPOP       196
+nHSP       559
+popl       732.0345
+hspl       806.7288
+poplhspl   958.4514
+psi.popl   4.8168
+psi.hspl   4.6795
+psi.both   4.8737
+ePOP       202.1
+eHSP       558.27
+ciratio    0.7642
+plot       TRUE

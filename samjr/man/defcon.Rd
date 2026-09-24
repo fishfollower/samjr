@@ -80,14 +80,6 @@ independent-draw expression gives; \eqn{\omega} multiplies that term
 alone. Expected to be at least 1. Default 1 and fixed, which assumes no
 such effect. Only the length-based terms have it: the age-based ones
 exclude same-cohort pairs outright, so the question never arises there.}
-\item{\code{ckmrlNq}}{number of length-at-age quantiles the unobserved
-parent in the half-sibling term is discretised onto, and with which the
-mean fecundity at age behind \eqn{TRO} is formed. Default 20. Fecundity
-at length is strongly convex - \eqn{\psi} is a length exponent, so 4.5
-where the age-based model would use 1.5 - and a coarse grid misses the
-upper tail: at 5 quantiles the half-sibling probability comes out about 5
-percent low, which an individual-based pedigree simulation and the
-log-normal moments agree on.}
 \item{\code{ckmrlRefLength}, \code{ckmrlScale}}{reference length in the
 fecundity relation, and the multiplier from model numbers to individuals.}
 \item{\code{ckmrScale}}{multiplier converting model numbers-at-age to

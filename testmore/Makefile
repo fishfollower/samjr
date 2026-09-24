@@ -13,4 +13,4 @@ doit:
 	else \
 	  echo "Error:"; \
 	fi
-	rm -f res.out
+	rm -f res.out errlog.txt
