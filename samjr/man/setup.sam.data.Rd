@@ -18,7 +18,8 @@ setup.sam.data(
   prop.m = NULL,
   land.frac = NULL,
   recapture = NULL,
-  ckmr = NULL
+  ckmr = NULL,
+  ckmrl = NULL
 )
 }
 \arguments{
@@ -56,6 +57,12 @@ setup.sam.data(
 returned list rather than as a fleet, because the pair table is not
 year-by-age rectangular. Switched on with \code{conf$usePOP} /
 \code{conf$useHSP}.}
+
+\item{ckmrl}{optional \emph{length}-based close-kin pair table as produced
+by \code{\link{ckmrlData}} or \code{\link{simulateCKMRL}}, with columns
+\code{year1}, \code{len1}, \code{year2}, \code{len2}, \code{nComp},
+\code{nPOP} and \code{nHSP}. Switched on with \code{conf$usePOPL} /
+\code{conf$useHSPL}.}
 }
 \value{
 a list of class \code{sam_data} containing fleet metadata

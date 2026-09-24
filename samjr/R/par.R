@@ -53,6 +53,20 @@ defpar <- function(data, conf, spinoutyear = 10){
   }else{
     par$logPsim1 <- numeric(0)
   }
+  if(dat$useCKMRL == 1L && dat$ckmrlEstPsi == 1L){
+    if(dat$ckmrlPsi <= 0)
+      stop("conf$ckmrlPsi must be positive when conf$ckmrlEstimatePsi is 1")
+    par$logPsiL <- log(dat$ckmrlPsi)
+  }else{
+    par$logPsiL <- numeric(0)
+  }
+  if(dat$useCKMRL == 1L && dat$ckmrlEstOmega == 1L){
+    if(dat$ckmrlOmega <= 0)
+      stop("conf$ckmrlOmega must be positive when conf$ckmrlEstimateOmega is 1")
+    par$logOmegaL <- log(dat$ckmrlOmega)
+  }else{
+    par$logOmegaL <- numeric(0)
+  }
   par$logIGARdist <- if(sum(dat$covType == 1) == 0) numeric(0)
                      else numeric(max(dat$keyIGAR, na.rm = TRUE))
   par$parUS <- unlist(lapply(seq_along(dat$covType), function(f)

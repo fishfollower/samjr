@@ -62,6 +62,34 @@ marginalises over its unknown birth year. Default 10.}
 resolved individually; the rest are lumped into one node whose weight is
 still summed exactly. Default 6, which on a typical plus group carries
 about 99 percent of the weight in the resolved nodes.}
+\item{\code{usePOPL}, \code{useHSPL}}{switch the \emph{length}-based
+close-kin terms on (1) or off (0), using the \code{ckmrl} pair table on
+the data object; see \code{\link{ckmrlData}}.}
+\item{\code{ckmrlPsi}, \code{ckmrlEstimatePsi}}{exponent in fecundity at
+length, \eqn{(\ell/\ell_{ref})^{\psi}}, and whether to estimate it. This
+is a \emph{length} exponent: with \eqn{W \propto \ell^3} a weight
+exponent of 1.5 corresponds to 4.5 here.}
+\item{\code{ckmrlLinf}, \code{ckmrlK}, \code{ckmrlT0},
+\code{ckmrlSdLogLength}}{von Bertalanffy growth and the log-normal spread
+of length at age. Fixed, not estimated.}
+\item{\code{ckmrlOmega}, \code{ckmrlEstimateOmega}}{the lucky-litter
+effect \eqn{\omega} and whether to estimate it. Within one spawning season
+reproductive success varies for reasons length and age do not capture, so
+two animals of the same cohort share a parent more often than the
+independent-draw expression gives; \eqn{\omega} multiplies that term
+alone. Expected to be at least 1. Default 1 and fixed, which assumes no
+such effect. Only the length-based terms have it: the age-based ones
+exclude same-cohort pairs outright, so the question never arises there.}
+\item{\code{ckmrlNq}}{number of length-at-age quantiles the unobserved
+parent in the half-sibling term is discretised onto, and with which the
+mean fecundity at age behind \eqn{TRO} is formed. Default 20. Fecundity
+at length is strongly convex - \eqn{\psi} is a length exponent, so 4.5
+where the age-based model would use 1.5 - and a coarse grid misses the
+upper tail: at 5 quantiles the half-sibling probability comes out about 5
+percent low, which an individual-based pedigree simulation and the
+log-normal moments agree on.}
+\item{\code{ckmrlRefLength}, \code{ckmrlScale}}{reference length in the
+fecundity relation, and the multiplier from model numbers to individuals.}
 \item{\code{ckmrScale}}{multiplier converting model numbers-at-age to
 individuals. Close-kin probabilities are inversely proportional to absolute
 abundance, so this must match the units of the catch data (e.g. 1000 when

@@ -46,6 +46,12 @@ simulate.sam <- function(object, nsim = 1, seed = NULL, full.data = TRUE, ...){
         ck$nHSP[dat$ckmrPrep$hspRow] <- sval$ckmrHSPobs
         out$ckmr <- ck
       }
+      if(!is.null(data2$ckmrl) && !is.null(sval$ckmrlPOPobs)){
+        ckl <- data2$ckmrl
+        ckl$nPOP[dat$ckmrlPrep$popRow] <- sval$ckmrlPOPobs
+        ckl$nHSP[dat$ckmrlPrep$hspRow] <- sval$ckmrlHSPobs
+        out$ckmrl <- ckl
+      }
       attr(out, "fleetNames") <- attr(object$data, "fleetNames")
       out
     }else{

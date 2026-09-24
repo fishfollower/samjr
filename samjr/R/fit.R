@@ -256,6 +256,41 @@ toBabyDat <- function(data, conf, spinoutyear = 10, warn = FALSE){
     dat$ckmrNpop   <- numeric(0)
     dat$ckmrNhsp   <- numeric(0)
   }
+
+  ## ---- close-kin by length ----
+  setl <- ckmrlSettings(conf)
+  dat$usePOPL <- setl$usePOPL; dat$useHSPL <- setl$useHSPL
+  dat$ckmrlScale <- setl$scale; dat$ckmrlPsi <- setl$psi
+  dat$ckmrlEstPsi <- setl$estPsi
+  dat$ckmrlOmega <- setl$omega; dat$ckmrlEstOmega <- setl$estOmega
+  hasCKL <- !is.null(data$ckmrl) && nrow(data$ckmrl) > 0 &&
+            (setl$usePOPL == 1L || setl$useHSPL == 1L)
+  if(hasCKL){
+    ckl  <- ckmrlCheck(data$ckmrl)
+    prepl <- ckmrlPrep(ckl, dat$year, dat$age, setl,
+                       propMat = if(mom == 0) data$propMat else NULL)
+    if(setl$usePOPL == 1L && length(prepl$popRow) == 0L)
+      stop("conf$usePOPL is on but no pair can be a parent-offspring pair")
+    if(setl$useHSPL == 1L && length(prepl$hspRow) == 0L)
+      stop("conf$useHSPL is on but no pair can be a half-sibling pair")
+    if(warn && setl$usePOPL == 1L && length(prepl$popRow) < nrow(ckl))
+      warning(nrow(ckl) - length(prepl$popRow), " of ", nrow(ckl),
+              " length-based CKMR pairs cannot be parent-offspring pairs")
+    if(warn && setl$useHSPL == 1L && length(prepl$hspRow) < nrow(ckl))
+      warning(nrow(ckl) - length(prepl$hspRow), " of ", nrow(ckl),
+              " length-based CKMR pairs cannot be cross-cohort half-siblings")
+    dat$useCKMRL    <- 1L
+    dat$ckmrlPrep   <- prepl
+    dat$ckmrlPOPobs <- ckl$nPOP[prepl$popRow]
+    dat$ckmrlHSPobs <- ckl$nHSP[prepl$hspRow]
+    dat$ckmrlNpop   <- ckl$nComp[prepl$popRow]
+    dat$ckmrlNhsp   <- ckl$nComp[prepl$hspRow]
+  }else{
+    dat$useCKMRL    <- 0L
+    dat$ckmrlPrep   <- NULL
+    dat$ckmrlPOPobs <- numeric(0); dat$ckmrlHSPobs <- numeric(0)
+    dat$ckmrlNpop   <- numeric(0); dat$ckmrlNhsp   <- numeric(0)
+  }
   dat
 }
 

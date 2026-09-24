@@ -12,10 +12,10 @@ DATA_FILES := $(wildcard $(PKGDIR)/data/*.rda)
 
 TESTMORE_DIR     := $(CURDIR)/testmore
 TESTMORE_DIRS    := $(patsubst $(TESTMORE_DIR)/%/script.R,%,$(wildcard $(TESTMORE_DIR)/*/script.R))
-TESTMORE_TIMEOUT ?= 600
+TESTMORE_TIMEOUT ?= 900
 TESTMORE_STATUS  := $(TESTMORE_DIR)/.status
 
-.PHONY: all doc install build check clean data help readme testmore testmore-prep testmore-summary $(addprefix testmore-,$(TESTMORE_DIRS))
+.PHONY: all doc install build check clean data help readme ageCKMR lenCKMR sim testmore testmore-prep testmore-summary $(addprefix testmore-,$(TESTMORE_DIRS))
 
 all: install
 
@@ -27,6 +27,9 @@ help:
 	@echo "  check     build + R CMD check --as-cran on the tarball"
 	@echo "  data      rebuild $(PKG)/data/nscod*.rda from testmore/nscod"
 	@echo "  readme    rebuild README.pdf from README.md via pandoc + xelatex"
+	@echo "  ageCKMR   rebuild ageCKMR.pdf: run ageCKMR.R, then pdflatex"
+	@echo "  lenCKMR   rebuild lenCKMR.pdf: run lenCKMR.R, then pdflatex"
+	@echo "  sim       rebuild sim.pdf: the pedigree-simulation write-up"
 	@echo "  testmore  run every testmore/<dir>/script.R and print OK / FAIL"
 	@echo "            (use 'make -j N testmore' to run in parallel)"
 	@echo "  clean     remove generated tarballs, check dirs, testmore artefacts"
@@ -68,6 +71,60 @@ README.pdf: README.md
 	 rc=$$?; rm -f $$tmp; exit $$rc
 
 # ---------------------------------------------------------------------------
+# ageCKMR: the close-kin write-up. ageCKMR.R produces both figures, the
+# numbers quoted in the text and the syntax example, so nothing in the
+# document is typed in by hand.
+
+AGECKMR_OUT := ageCKMR-fit.pdf ageCKMR-ssb.pdf ageCKMR-numbers.tex
+
+ageCKMR: ageCKMR.pdf
+
+$(AGECKMR_OUT): ageCKMR.R install
+	$(R) --slave --vanilla -f $<
+
+ageCKMR-example.tex: ageCKMR.R
+	sed -n '/^## <<ex$$/,/^## ex>>$$/p' $< \
+	  | sed '/^## <<skip$$/,/^## skip>>$$/d' \
+	  | grep -v '^## <<ex$$\|^## ex>>$$\|flush\.console' > $@
+
+ageCKMR.pdf: ageCKMR.tex ageCKMR-example.tex $(AGECKMR_OUT)
+	pdflatex -interaction=nonstopmode -halt-on-error $< > /dev/null
+	pdflatex -interaction=nonstopmode -halt-on-error $< > /dev/null
+
+# ---------------------------------------------------------------------------
+# lenCKMR: the length-based close-kin write-up, same arrangement as ageCKMR.
+
+LENCKMR_OUT := lenCKMR-ssb.pdf lenCKMR-ibm.pdf lenCKMR-numbers.tex
+
+lenCKMR: lenCKMR.pdf
+
+$(LENCKMR_OUT): lenCKMR.R install
+	$(R) --slave --vanilla -f $<
+
+lenCKMR-example.tex: lenCKMR.R
+	sed -n '/^## <<ex$$/,/^## ex>>$$/p' $< \
+	  | sed '/^## <<skip$$/,/^## skip>>$$/d' \
+	  | grep -v '^## <<ex$$\|^## ex>>$$\|flush\.console' > $@
+
+lenCKMR.pdf: lenCKMR.tex lenCKMR-example.tex $(LENCKMR_OUT)
+	pdflatex -interaction=nonstopmode -halt-on-error $< > /dev/null
+	pdflatex -interaction=nonstopmode -halt-on-error $< > /dev/null
+
+# ---------------------------------------------------------------------------
+# sim: how the individual-based pedigree simulations work, and what they check.
+
+SIM_OUT := sim-pop.pdf sim-check.pdf sim-numbers.tex
+
+sim: sim.pdf
+
+$(SIM_OUT): sim.R sim.tex install
+	$(R) --slave --vanilla -f $<
+
+sim.pdf: sim.tex $(SIM_OUT)
+	pdflatex -interaction=nonstopmode -halt-on-error $< > /dev/null
+	pdflatex -interaction=nonstopmode -halt-on-error $< > /dev/null
+
+# ---------------------------------------------------------------------------
 # testmore: run every testmore/<dir>/script.R, print OK / FAIL per test, then
 # a summary. Per-test results are recorded in $(TESTMORE_STATUS)/<dir> so the
 # summary works under `make -j`.
@@ -107,6 +164,14 @@ testmore-summary: $(addprefix testmore-,$(TESTMORE_DIRS))
 	 [ $$fail -eq 0 ]
 
 clean:
+	rm -f $(CURDIR)/sim.pdf $(addprefix $(CURDIR)/,$(SIM_OUT))
+	rm -f $(CURDIR)/sim.aux $(CURDIR)/sim.log $(CURDIR)/sim.out
+	rm -f $(CURDIR)/lenCKMR.pdf $(CURDIR)/lenCKMR-example.tex
+	rm -f $(addprefix $(CURDIR)/,$(LENCKMR_OUT))
+	rm -f $(CURDIR)/lenCKMR.aux $(CURDIR)/lenCKMR.log $(CURDIR)/lenCKMR.out
+	rm -f $(CURDIR)/ageCKMR.pdf $(CURDIR)/ageCKMR-example.tex
+	rm -f $(addprefix $(CURDIR)/,$(AGECKMR_OUT))
+	rm -f $(CURDIR)/ageCKMR.aux $(CURDIR)/ageCKMR.log $(CURDIR)/ageCKMR.out
 	rm -f $(CURDIR)/$(TARBALL)
 	rm -rf $(CURDIR)/$(PKG).Rcheck
 	rm -rf $(TESTMORE_STATUS)

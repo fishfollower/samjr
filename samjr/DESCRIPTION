@@ -15,7 +15,8 @@ Description: Provides a small subset of the SAM stockassessment user interface
     icesAdviceRule), mirroring SAM's stockassessment reference points.
 License: GPL-2
 Depends: R (>= 3.5.0), RTMB
-Imports: Matrix, methods, stats, utils, graphics, grDevices, parallel
+Imports: Matrix, methods, stats, utils, graphics, grDevices, parallel,
+    offarray, offartmb
 Suggests: ellipse
 Encoding: UTF-8
 LazyData: true

@@ -345,6 +345,35 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       REPORT(pPOP); REPORT(pHSP)
     }
 
+    if(useCKMRL == 1L){
+      ## Length-based close kin. Fecundity is driven by length, and the age of
+      ## a measured fish is inferred from its length. The prior in that
+      ## inference is the POPULATION age composition, not the catch: selection,
+      ## by the fishery or by whoever picks fish for genotyping, acts on length
+      ## rather than on age, so conditioning on the observed length already
+      ## absorbs it and the sample proportions match the population ones
+      ## (Bravington, Length and Age in CKMR, August 2025, eq 4). Using the
+      ## catch at age here would count selectivity twice.
+      psiL <- if(ckmrlEstPsi == 1L) exp(logPsiL[1]) else ckmrlPsi
+      ## the lucky-litter effect on same-cohort pairs; 1 means none
+      omegaL <- if(ckmrlEstOmega == 1L) exp(logOmegaL[1]) else ckmrlOmega
+      Zl   <- F + M
+      ckmrlPOPobs <- OBS(ckmrlPOPobs)
+      ckmrlHSPobs <- OBS(ckmrlHSPobs)
+      prL <- ckmrlProb(exp(logN) * ckmrlScale, Zl, MO, exp(logN), psiL,
+                       ckmrlPrep, omegaL)
+      if(usePOPL == 1L)
+        jnll <- jnll - sum(dpois(ckmrlPOPobs,
+                  prL$pPOP[ckmrlPrep$popRow] * ckmrlNpop, log = TRUE))
+      if(useHSPL == 1L)
+        jnll <- jnll - sum(dpois(ckmrlHSPobs,
+                  prL$pHSP[ckmrlPrep$hspRow] * ckmrlNhsp, log = TRUE))
+      pPOPL <- prL$pPOP; pHSPL <- prL$pHSP
+      REPORT(pPOPL); REPORT(pHSPL)
+      if(ckmrlEstPsi == 1L) ADREPORT(psiL)
+      if(ckmrlEstOmega == 1L) ADREPORT(omegaL)
+    }
+
     N <- exp(logN)
     Z <- F + M
     cAA <- N * (F / Z) * (1 - exp(-Z))

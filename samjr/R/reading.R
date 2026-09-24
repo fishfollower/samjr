@@ -275,6 +275,11 @@ read.data.files <- function(dir = "."){
 ##' returned list rather than as a fleet, because the pair table is not
 ##' year-by-age rectangular. Switched on with \code{conf$usePOP} /
 ##' \code{conf$useHSP}.
+##' @param ckmrl optional \emph{length}-based close-kin pair table as produced
+##' by \code{\link{ckmrlData}} or \code{\link{simulateCKMRL}}, with columns
+##' \code{year1}, \code{len1}, \code{year2}, \code{len2}, \code{nComp},
+##' \code{nPOP} and \code{nHSP}. Switched on with \code{conf$usePOPL} /
+##' \code{conf$useHSPL}.
 ##' @return a list of class \code{sam_data} containing fleet metadata
 ##' (\code{fleetTypes}, \code{sampleTimes}, \code{minAgePerFleet},
 ##' \code{maxAgePerFleet}), the observation table (\code{aux}, \code{logobs},
@@ -288,7 +293,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
                            catch.mean.weight = NULL, dis.mean.weight = NULL,
                            land.mean.weight = NULL, natural.mortality = NULL,
                            prop.f = NULL, prop.m = NULL, land.frac = NULL,
-                           recapture = NULL, ckmr = NULL){
+                           recapture = NULL, ckmr = NULL, ckmrl = NULL){
   if(!is.null(fleets))
     stop("samjr v1: 'fleets' (commercial fleets with effort) not supported")
   if(is.null(residual.fleet))
@@ -467,6 +472,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     propM = cutY(prop.m)
   )
   if(!is.null(ckmr)) ret$ckmr <- ckmrCheck(ckmr)
+  if(!is.null(ckmrl)) ret$ckmrl <- ckmrlCheck(ckmrl)
   attr(ret, "fleetNames") <- name
   class(ret) <- "sam_data"
   ret

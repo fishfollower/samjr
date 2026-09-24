@@ -57,7 +57,7 @@ mkconf<-function(dat){
 }
 
 conf0<-mkconf(dat)
-fit0<-sam.fit(dat, conf0, defpar(dat, conf0), silent=TRUE)
+fit0<-sam.fit(dat, conf0, defpar(dat, conf0), silent=FALSE)
 
 ## babyM.R: simDat(years=2020:2023, n=rep(1e6,4)), but sampling uniformly
 ## over ages rather than babyM.R's selection=c(1,1,1,0,...)
@@ -83,7 +83,7 @@ runit<-function(usePOP, useHSP){
   for(nm in names(par))
     if(nm %in% names(fit0$pl) && length(par[[nm]])==length(fit0$pl[[nm]]))
       par[[nm]][]<-fit0$pl[[nm]]
-  suppressWarnings(sam.fit(dat2, conf, par, silent=TRUE))
+  suppressWarnings(sam.fit(dat2, conf, par, silent=FALSE))
 }
 fitP <-runit(1,0)
 fitH <-runit(0,1)

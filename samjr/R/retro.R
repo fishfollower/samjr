@@ -72,6 +72,11 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
     keep <- (ck$year1 %in% data$years) & (ck$year2 %in% data$years)
     data$ckmr <- if(any(keep)) ck[keep, , drop = FALSE] else NULL
   }
+  if(!is.null(data$ckmrl)){
+    ck <- data$ckmrl
+    keep <- (ck$year1 %in% data$years) & (ck$year2 %in% data$years)
+    data$ckmrl <- if(any(keep)) ck[keep, , drop = FALSE] else NULL
+  }
 
   data$aux[, "fleet"] <- match(data$aux[, "fleet"], suf)
   data$minAgePerFleet <- tapply(as.integer(data$aux[, "age"]),

@@ -48,5 +48,8 @@ utils::globalVariables(c(
   "tagNscan", "tagR", "tagTypeIdx", "weight", "xtraSdIdxByObs", "year",
   "useCKMR", "usePOP", "useHSP", "ckmrPsi", "ckmrScale", "ckmrPrep",
   "ckmrPOPobs", "ckmrHSPobs", "ckmrNpop", "ckmrNhsp",
-  "ckmrEstPsi", "logPsim1", "ckmrSWref", "ckmrPlusWeight"
+  "ckmrEstPsi", "logPsim1", "ckmrSWref", "ckmrPlusWeight",
+  "useCKMRL", "usePOPL", "useHSPL", "ckmrlScale", "ckmrlPsi", "ckmrlEstPsi",
+  "ckmrlPrep", "ckmrlPOPobs", "ckmrlHSPobs", "ckmrlNpop", "ckmrlNhsp",
+  "logPsiL", "pPOPL", "pHSPL", "ckmrlOmega", "ckmrlEstOmega", "logOmegaL"
 ))

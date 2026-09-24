@@ -346,6 +346,63 @@ spawning offset; and the pairs are not independent, so this is a composite
 likelihood and nominal standard errors on CKMR-informed quantities are
 optimistic.
 
+### Close-kin by length
+
+Fecundity is really driven by length, not weight-at-age, and for a genotyped
+fish it is length that gets measured - age is at best inferred. `samjr` carries
+a parallel length-based formulation (`conf$usePOPL` / `conf$useHSPL`, data in
+`data$ckmrl`, everything named `ckmrl*` alongside the age-based `ckmr*`),
+following Bravington's *Length and Age in CKMR* (August 2025).
+
+Length at age is log-normal about a von Bertalanffy mean, with the growth
+parameters fixed in `conf` (`ckmrlLinf`, `ckmrlK`, `ckmrlT0`,
+`ckmrlSdLogLength`). Fecundity is $\phi(\ell) = (\ell/\ell_{ref})^{\psi}$ -
+note $\psi$ is a **length** exponent here, so with $W \propto \ell^3$ a weight
+exponent of 1.5 in the age-based model corresponds to 4.5. For a pair observed
+at $(\ell_p, y_p)$ and $(\ell_j, y_j)$,
+
+```math
+P_{\mathrm{POP}} = 2 \sum_{a_p, a_j} P[a_p|\ell_p,y_p]\, P[a_j|\ell_j,y_j]\,
+  \frac{\mathrm{MO}_{a_p',b}\;\phi(\hat\ell)}{\mathrm{TRO}_b},
+\qquad b = y_j - a_j
+```
+
+summed over both assignments of parent and offspring, where $a_p'$ is the
+parent's age in year $b$ and $\hat\ell = \bar\ell_{a_p'}\,\ell_p/\bar\ell_{a_p}$
+retrojects its length by holding its length-at-age quantile. The half-sibling
+term sums the age-based expression over both animals' possible ages, with the
+unobserved shared parent's length integrated out exactly. Because it keeps its
+length-at-age quantile for life, the needed expectations are log-normal
+moments with closed forms - `E[phi] = phibar * exp(psi^2 sd^2 / 2)` and, for
+one fish at two ages, `E[phi_a phi_a'] = phibar_a phibar_a' * exp(2 psi^2
+sd^2)` - so there is no quadrature and no accuracy parameter. This is exact
+only while fecundity is a pure power of length and maturity is indexed by age;
+see `lenCKMR.tex`.
+
+$P[a|\ell,y]$ combines the length-at-age density with the **population** age
+composition. Selection, by the fishery or by whoever picks fish for genotyping,
+is taken to act on length and year rather than on age, so it cancels out of the
+conditional distribution once the length is known and the sample proportions
+match the population ones; using the catch at age would count selectivity
+twice.
+
+```r
+conf$ckmrlLinf <- 120; conf$ckmrlK <- 0.30; conf$ckmrlSdLogLength <- 0.12
+conf$ckmrlRefLength <- 100; conf$ckmrlPsi <- 4.5; conf$ckmrlScale <- 1000
+ckl <- simulateCKMRL(fit0, years = 2010:2014, n = rep(20000, 5), nBin = 8)
+dat <- setup.sam.data(..., ckmrl = ckl)
+conf$usePOPL <- 1; conf$useHSPL <- 1
+fit <- sam.fit(dat, conf, defpar(dat, conf))
+ckmrltable(fit)
+```
+
+As with the age-based version `psi` is fixed by default and adds no estimated
+parameter; `conf$ckmrlEstimatePsi <- 1` estimates it. Unlike the age-based
+table, pairs from the *same* (year, length) cell are kept - two fish of equal
+length in one year need not be the same age. The plus group is not yet handled
+here: a fish at `maxAge` gets a single length-at-age distribution, where the
+age-based term marginalises over the ages it could really be.
+
 ### Estimation
 
 Random effects are
@@ -388,6 +445,7 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `hcr`, `icesAdviceRule`, `hcrFun` | stochastic harvest control rule projections |
 | `addRecruitmentCurve` | overlay the fitted SR curve (with CI) on `srplot` |
 | `ckmrData`, `simulateCKMR` | build / simulate a close-kin mark-recapture pair table |
+| `ckmrlData`, `simulateCKMRL`, `ckmrltable` | the same, by length rather than age |
 | `ckmrtable`, `ckmrplot` | observed vs expected close-kin pair counts |
 | `retro`, `runwithout`, `leaveout`, `mohn` | retrospective and leave-one-out tools |
 | `jit` | jitter starting values, refit |

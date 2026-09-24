@@ -67,6 +67,26 @@ setS <- function(x){
 ##' resolved individually; the rest are lumped into one node whose weight is
 ##' still summed exactly. Default 6, which on a typical plus group carries
 ##' about 99 percent of the weight in the resolved nodes.}
+##' \item{\code{usePOPL}, \code{useHSPL}}{switch the \emph{length}-based
+##' close-kin terms on (1) or off (0), using the \code{ckmrl} pair table on
+##' the data object; see \code{\link{ckmrlData}}.}
+##' \item{\code{ckmrlPsi}, \code{ckmrlEstimatePsi}}{exponent in fecundity at
+##' length, \eqn{(\ell/\ell_{ref})^{\psi}}, and whether to estimate it. This
+##' is a \emph{length} exponent: with \eqn{W \propto \ell^3} a weight
+##' exponent of 1.5 corresponds to 4.5 here.}
+##' \item{\code{ckmrlLinf}, \code{ckmrlK}, \code{ckmrlT0},
+##' \code{ckmrlSdLogLength}}{von Bertalanffy growth and the log-normal spread
+##' of length at age. Fixed, not estimated.}
+##' \item{\code{ckmrlOmega}, \code{ckmrlEstimateOmega}}{the lucky-litter
+##' effect \eqn{\omega} and whether to estimate it. Within one spawning season
+##' reproductive success varies for reasons length and age do not capture, so
+##' two animals of the same cohort share a parent more often than the
+##' independent-draw expression gives; \eqn{\omega} multiplies that term
+##' alone. Expected to be at least 1. Default 1 and fixed, which assumes no
+##' such effect. Only the length-based terms have it: the age-based ones
+##' exclude same-cohort pairs outright, so the question never arises there.}
+##' \item{\code{ckmrlRefLength}, \code{ckmrlScale}}{reference length in the
+##' fecundity relation, and the multiplier from model numbers to individuals.}
 ##' \item{\code{ckmrScale}}{multiplier converting model numbers-at-age to
 ##' individuals. Close-kin probabilities are inversely proportional to absolute
 ##' abundance, so this must match the units of the catch data (e.g. 1000 when
@@ -188,6 +208,18 @@ defcon <- function(dat, level = 1){
   ret$ckmrScale <- 1
   ret$ckmrPlusExtra <- 10
   ret$ckmrPlusNodes <- 6
+  ret$usePOPL <- 0
+  ret$useHSPL <- 0
+  ret$ckmrlScale <- 1
+  ret$ckmrlPsi <- 4.5
+  ret$ckmrlEstimatePsi <- 0
+  ret$ckmrlOmega <- 1
+  ret$ckmrlEstimateOmega <- 0
+  ret$ckmrlLinf <- 41.7
+  ret$ckmrlK <- 0.35
+  ret$ckmrlT0 <- 0
+  ret$ckmrlSdLogLength <- 0.1
+  ret$ckmrlRefLength <- 50
   ret
 }
 
