@@ -170,7 +170,7 @@ read.ices <- function(filen){
       C <- C[, rep(1, maxA - minA + 1)]
     }
     rownames(C) <- minY:maxY
-    C <- C[, 1:length(minA:maxA)]
+    C <- C[, 1:length(minA:maxA), drop=FALSE]
     colnames(C) <- minA:maxA
     if(!is.numeric(C))
       stop(paste("In file", filen, ": Non numeric data values detected"))
@@ -232,6 +232,8 @@ read.data.files <- function(dir = "."){
   pm <- read.ices("pm.dat")
   sw <- read.ices("sw.dat")
   lf <- read.ices("lf.dat")
+  if(file.exists("wsc.dat")){wsc <- read.ices("wsc.dat")}
+
   surveys <- read.ices("survey.dat")
   setup.sam.data(surveys = surveys,
                  residual.fleet = cn,
@@ -243,7 +245,8 @@ read.data.files <- function(dir = "."){
                  prop.f = pf,
                  prop.m = pm,
                  natural.mortality = nm,
-                 land.frac = lf)
+                 land.frac = lf,
+                 wsc=if(file.exists("wsc.dat")){wsc}else{NULL})
 }
 
 ##' Combine the data sources to a samjr data object
@@ -280,7 +283,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
                            catch.mean.weight = NULL, dis.mean.weight = NULL,
                            land.mean.weight = NULL, natural.mortality = NULL,
                            prop.f = NULL, prop.m = NULL, land.frac = NULL,
-                           recapture = NULL){
+                           recapture = NULL, wsc=NULL){
   if(!is.null(fleets))
     stop("samjr v1: 'fleets' (commercial fleets with effort) not supported")
   if(is.null(residual.fleet))
@@ -411,6 +414,8 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     land.frac <- matrix(1, nrow = nrow(residual.fleet), ncol = ncol(residual.fleet))
   if(is.null(prop.f))
     prop.f <- matrix(0, nrow = nrow(residual.fleet), ncol = ncol(residual.fleet))
+  if(is.null(wsc))
+    wsc <- matrix(0, nrow = nrow(residual.fleet), ncol = 1)
 
   nF <- length(type)
   idxCor <- matrix(NA_integer_, nrow = nF, ncol = length(newyear))
@@ -456,7 +461,8 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     disMeanWeight = cutY(dis.mean.weight),
     landMeanWeight = cutY(land.mean.weight),
     propF = cutY(prop.f),
-    propM = cutY(prop.m)
+    propM = cutY(prop.m),
+    wsc = wsc
   )
   attr(ret, "fleetNames") <- name
   class(ret) <- "sam_data"

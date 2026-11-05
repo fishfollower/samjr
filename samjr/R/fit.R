@@ -91,6 +91,7 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
   dat$MO <- data$propMat
   dat$PF <- data$propF
   dat$PM <- data$propM
+  dat$wsc <- data$wsc
   dat$CW <- data$catchMeanWeight
   ages <- dat$age
   dat$fbarIdx <- which(ages >= conf$fbarRange[1] & ages <= conf$fbarRange[2])
@@ -214,7 +215,7 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' \code{\link[stats]{nlminb}}.
 ##'
 ##' Supported features in v1: stock-recruitment modes 0 (random walk),
-##' 1 (Ricker) and 2 (Beverton-Holt), or a user-supplied recruitment
+##' 1 (Ricker), 2 (Beverton-Holt) and 62 (AR(1)), or a user-supplied recruitment
 ##' function via \code{logSRfun} / \code{logSRinit}; F-process correlation modes 0
 ##' (independent), 1 (compound symmetry) and 2 (AR(1)-like decay);
 ##' observation correlation structures \code{ID}, \code{IGAR} (single AR-style
@@ -303,7 +304,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
     if(!is.function(logSRfun)) stop("logSRfun must be a function of (S, pv)")
     if(is.null(logSRinit)) stop("logSRinit must be supplied when logSRfun is set")
     parameters$logSRpar <- as.numeric(logSRinit)
-    for(nm in c("rickerpar", "bhpar")){
+    for(nm in c("rickerpar", "bhpar", "ar1par")){
       if(length(parameters[[nm]]) > 0 && is.null(map[[nm]]))
         map[[nm]] <- factor(rep(NA, length(parameters[[nm]])))
     }

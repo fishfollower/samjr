@@ -155,6 +155,7 @@ forecast.sam <- function(fit,
                          useNMmodel = (fit$conf$mortalityModel >= 1),
                          splitLD = FALSE,
                          estimate = stats::median,
+                         useRproc=FALSE,
                          ...){
 
   ns <- max(c(length(fscale), length(fval), length(catchval), length(landval)))
@@ -178,6 +179,25 @@ forecast.sam <- function(fit,
   yIdx <- which(data$years == year.base)
   if(length(yIdx) == 0) stop("year.base must be in fit$data$years")
   pl <- fitParList(fit)
+
+  cmMode <- useRproc && !deterministic && dat$srmode == 100
+  wscMode <- useRproc && !deterministic && dat$srmode %in% c(100, 101)
+  if(wscMode){
+    cmBeta <- exp(pl$cmpar[1])
+    wscAt <- function(yr){
+      v <- dat$wsc[, 1][yr - dat$minYear + 1]
+      if(is.na(v)) stop("wsc missing for year ", yr)
+      v
+    }
+  }
+  if(cmMode){
+    if(yIdx < 2) stop("srmode 100 forecast needs year.base after the first data year")
+    cmphi <- 2 * stats::plogis(pl$cmpar[2]) - 1
+  }
+  if(useRproc && !deterministic && dat$srmode == 62){
+    ar1Mu <- pl$ar1par[1]
+    ar1Rho <- 2 * stats::plogis(pl$ar1par[2]) - 1
+  }
 
   baseN <- exp(pl$logN[yIdx, ])
   baseF <- exp(pl$logF[yIdx, ])[keyF]
@@ -291,8 +311,9 @@ forecast.sam <- function(fit,
     nyear <- length(data$years)
     idxN <- posLogN[yIdx + (seq_len(nages)   - 1L) * nyear]
     idxF <- posLogF[yIdx + (seq_len(nFstate) - 1L) * nyear]
-    idx  <- c(idxN, idxF)
-    mu   <- c(pl$logN[yIdx, ], pl$logF[yIdx, ])
+    idxRprev <- if(cmMode) posLogN[yIdx - 1L] else integer(0)
+    idx  <- c(idxN, idxF, idxRprev)
+    mu   <- c(pl$logN[yIdx, ], pl$logF[yIdx, ], if(cmMode) pl$logN[yIdx - 1L, 1])
     e <- Matrix::sparseMatrix(i = idx, j = seq_along(idx), x = 1,
                               dims = c(nrow(Q), length(idx)))
     Sigma <- as.matrix(Matrix::solve(Q, e)[idx, , drop = FALSE])
@@ -301,9 +322,14 @@ forecast.sam <- function(fit,
     Nmat       <- exp(draws[, seq_len(nages), drop = FALSE])
     Fmat_state <- exp(draws[, nages + seq_len(nFstate), drop = FALSE])
     Fmat       <- Fmat_state[, keyF, drop = FALSE]
+    if(cmMode) logRprev <- draws[, nages + nFstate + 1L]
   }else{
     Nmat <- matrix(rep(baseN, each = Nsim), nrow = Nsim, ncol = nages)
     Fmat <- matrix(rep(baseF, each = Nsim), nrow = Nsim, ncol = nages)
+  }
+  if(cmMode){
+    if(!sampleStart) logRprev <- pl$logN[yIdx - 1L, 1]
+    eSim <- log(Nmat[, 1]) - logRprev - cmBeta * wscAt(year.base - 1)
   }
 
   resampleN <- function(n){
@@ -355,6 +381,21 @@ forecast.sam <- function(fit,
       Nnew <- matrix(0, Nsim, nages)
       if(deterministic){
         Nnew[, 1] <- mean(recpool)
+      }else if(useRproc) {
+        if(dat$srmode == 0){
+          Nnew[, 1] <- exp(log(Nmat[,1])+rnorm(nrow(Nmat),0,sd=exp(fit$pl$logSdLogN[1])))
+        } else if(dat$srmode == 62){
+          Nnew[, 1] <- exp(ar1Mu + ar1Rho * (log(Nmat[, 1]) - ar1Mu) +
+                           stats::rnorm(Nsim, 0, exp(pl$logSdLogN[1])))
+        } else if(dat$srmode == 100){
+          eSim <- cmphi * eSim + stats::rnorm(Nsim, 0, exp(pl$logSdLogN[1]))
+          Nnew[, 1] <- exp(log(Nmat[, 1]) + cmBeta * wscAt(y - 1) + eSim)
+        } else if(dat$srmode == 101){
+          Nnew[, 1] <- exp(log(Nmat[, 1]) + cmBeta * wscAt(y - 1) +
+                           stats::rnorm(Nsim, 0, exp(pl$logSdLogN[1])))
+        } else {
+          stop("useRproc not implemented for srmode ", dat$srmode)
+        }
       }else{
         recIdx <- vapply(seq_len(Nsim),
                          function(.) sample.int(length(recpool), 1L),

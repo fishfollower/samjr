@@ -26,6 +26,7 @@ forecast(fit, ...)
   useNMmodel = (fit$conf$mortalityModel >= 1),
   splitLD = FALSE,
   estimate = stats::median,
+  useRproc = FALSE,
   ...
 )
 }

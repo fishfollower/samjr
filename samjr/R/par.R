@@ -30,6 +30,8 @@ defpar <- function(data, conf, spinoutyear = 10){
   par$rickerpar <- if(dat$srmode == 1) c(1, 1) else numeric(0)
   par$itrans_rho <- if(dat$fcormode == 0) numeric(0) else 0.1
   par$bhpar <- if(dat$srmode == 2) c(1, 1) else numeric(0)
+  par$cmpar <- if(dat$srmode == 100) numeric(2) else if(dat$srmode == 101) numeric(1) else numeric(0)
+  par$ar1par <- if(dat$srmode == 62) numeric(2) else numeric(0)
   par$logQ <- numeric(max(dat$keyQ, na.rm = TRUE)) - 5
   qpowMax <- if(is.null(dat$keyQpow)) -1 else suppressWarnings(max(dat$keyQpow, na.rm = TRUE))
   par$logQpow <- if(!is.finite(qpowMax) || qpowMax <= 0) numeric(0) else numeric(qpowMax)

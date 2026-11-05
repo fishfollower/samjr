@@ -84,7 +84,7 @@ Internally the likelihood is built with RTMB; the optimiser is
 }
 \details{
 Supported features in v1: stock-recruitment modes 0 (random walk),
-1 (Ricker) and 2 (Beverton-Holt), or a user-supplied recruitment
+1 (Ricker), 2 (Beverton-Holt) and 62 (AR(1)), or a user-supplied recruitment
 function via \code{logSRfun} / \code{logSRinit}; F-process correlation modes 0
 (independent), 1 (compound symmetry) and 2 (AR(1)-like decay);
 observation correlation structures \code{ID}, \code{IGAR} (single AR-style

@@ -40,7 +40,8 @@ matrices for the F process, N process, and observation variances.}
 \item{\code{keyCorObs}}{matrix of integer indices for AR or IGAR
 correlation parameters.}
 \item{\code{stockRecruitmentModelCode}}{0 = random walk, 1 = Ricker,
-2 = Beverton-Holt.}
+2 = Beverton-Holt, 62 = AR(1), 100 = Cappelli-MacKenzie, 101 = random walk with
+\code{wsc} drift.}
 \item{\code{noScaledYears}, \code{keyScaledYears}, \code{keyParScaledYA}}{
 optional catch-scaling configuration; see \code{\link{sam.fit}}.}
 \item{\code{fbarRange}}{integer vector of length two giving the age range
