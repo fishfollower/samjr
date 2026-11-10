@@ -4,7 +4,9 @@
 ##' data object and a configuration. Most parameters are initialised to zero
 ##' (in log-space); the catchabilities \code{logQ} are initialised to
 ##' \eqn{-5} so that they act roughly multiplicatively on small abundance
-##' indices. Recruitment, F-process, and observation random effects are also
+##' indices. For recruitment codes 62 and 102 the AR(1) mean starts at the
+##' largest mean log catch-at-age, a lower bound on log-recruitment.
+##' Recruitment, F-process, and observation random effects are also
 ##' included.
 ##'
 ##' If \code{conf$noScaledYears > 0}, a \code{logScale} parameter vector of
@@ -31,7 +33,11 @@ defpar <- function(data, conf, spinoutyear = 10){
   par$itrans_rho <- if(dat$fcormode == 0) numeric(0) else 0.1
   par$bhpar <- if(dat$srmode == 2) c(1, 1) else numeric(0)
   par$cmpar <- if(dat$srmode == 100) numeric(2) else if(dat$srmode == 101) numeric(1) else numeric(0)
-  par$ar1par <- if(dat$srmode == 62) numeric(2) else numeric(0)
+  par$ar1par <- if(dat$srmode %in% c(62, 102)){
+    isCatch <- dat$fleetTypes[dat$aux[, "fleet"]] == 0 & !is.na(dat$logobs)
+    ar1MuStart <- if(any(isCatch)) max(tapply(dat$logobs[isCatch], dat$aux[isCatch, "age"], mean)) else 0
+    c(ar1MuStart, 0, if(dat$srmode == 102) 0)
+  }else numeric(0)
   par$logQ <- numeric(max(dat$keyQ, na.rm = TRUE)) - 5
   qpowMax <- if(is.null(dat$keyQpow)) -1 else suppressWarnings(max(dat$keyQpow, na.rm = TRUE))
   par$logQpow <- if(!is.finite(qpowMax) || qpowMax <= 0) numeric(0) else numeric(qpowMax)

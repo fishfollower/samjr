@@ -158,6 +158,12 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       ar1Rho <- 2 * plogis(ar1par[2]) - 1
       pred <- ar1Mu + ar1Rho * (logN[yIdx - 1, 1] - ar1Mu)
       jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
+    }else if(srmode == 102){
+      ar1Mu <- ar1par[1]
+      ar1Rho <- 2 * plogis(ar1par[2]) - 1
+      ar1Alpha <- ar1par[3]
+      pred <- (1 - ar1Rho) * (ar1Mu + ar1Alpha * wsc[yIdx - 1]) + ar1Rho * logN[yIdx - 1, 1]
+      jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
     }else if(srmode == 100){
       cmBeta <- exp(cmpar[1])
       cmphi <- 2 * plogis(cmpar[2]) - 1
