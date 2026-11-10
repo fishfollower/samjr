@@ -147,16 +147,41 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
     ssbLag <- ssb[pmax(yIdx - minAge, 1)]
     if(!is.null(logSRfun)){
       pred <- logSRfun(ssbLag, logSRpar)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 0){
       pred <- logN[yIdx - 1, 1]
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 1){
       pred <- rickerpar[1] + log(ssbLag) - exp(rickerpar[2]) * ssbLag
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 2){
       pred <- bhpar[1] + log(ssbLag) - log(1.0 + exp(bhpar[2]) * ssbLag)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
+    }else if(srmode == 3){
+      # Put into matrix
+      "[<-" <- ADoverload("[<-")
+      #browser()
+      x_tj[,2] = logN[,1]
+      #
+      xhat_tj = outer( rep(1,nrow(tsdata)), mu_j )
+      ram = dsem_make_matrices(
+        beta_p = beta_z,
+        model = model,
+        times = as.numeric(time(tsdata)),
+        variables = colnames(tsdata)
+      )
+      Rho_kk = AD(ram$P_kk)
+      IminusRho_kk = Matrix::Diagonal(prod(dim(tsdata))) - Rho_kk
+      # Assemble variance
+      Gamma_kk = AD(ram$G_kk)
+      V_kk = Matrix::t(Gamma_kk) %*% Gamma_kk
+      invV_kk = Matrix::solve( V_kk )
+      Q_kk = Matrix::t(IminusRho_kk) %*% invV_kk %*% IminusRho_kk
+      # Fine from here
+      jnll = jnll - dgmrf( as.vector(x_tj), mu = as.vector(xhat_tj), Q = Q_kk, log = TRUE )
     }else{
       stop(paste("srmode", srmode, "not implemented"))
     }
-    jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     if(resFlag == 1L){
       resN <- AD(matrix(0, nrow = ncol, ncol = nrow - 1L))
       resN[1, yIdx - 1L] <- (logN[yIdx, 1] - pred) / sdR

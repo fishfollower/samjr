@@ -202,6 +202,9 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
     diag(Wp) <- -Matrix::rowSums(Wp)
     dat$Wc <- Wc; dat$Wd <- Wd; dat$Wp <- Wp
   }
+  # Add dsem stuff
+  if(!is.null(data$tsdata)) dat$tsdata = data$tsdata
+  if(!is.null(data$model)) dat$model = data$model
   dat
 }
 
@@ -316,6 +319,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
   if(dat$catchWeightModel >= 1) randomVars <- c(randomVars, "logCW")
   if(dat$matureModel       >= 1) randomVars <- c(randomVars, "logitMO")
   if(dat$mortalityModel    >= 1) randomVars <- c(randomVars, "logNM")
+  if( "x_tj" %in% names(parameters)) randomVars <- c(randomVars, "x_tj")
   obj <- MakeADFun(f, parameters,
                    random = randomVars,
                    map = map,
