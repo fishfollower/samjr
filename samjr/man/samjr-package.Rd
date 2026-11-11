@@ -25,6 +25,7 @@ reference-point catalogue of SAM's \code{stockassessment} package.
 
 Authors:
 \itemize{
+  \item Anders Nielsen \email{fishfollower@gmail.com}
   \item Christoffer Moesgaard Albertsen \email{cmoe@aqua.dtu.dk}
 }
 

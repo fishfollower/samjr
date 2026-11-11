@@ -87,7 +87,7 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 ##'   logSRpar)} inside the AD tape.
 ##' @keywords internal
 ##' @noRd
-makeBabyLikelihood <- function(dat, logSRfun = NULL){
+makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
   function(par){
     getAll(par, dat)
     resFlag <- if(is.null(dat$resFlag)) 0L else as.integer(dat$resFlag)
@@ -161,17 +161,24 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       # Put into matrix
       "[<-" <- ADoverload("[<-")
       #browser()
-      x_tj[,2] = logN[,1]
+      x_tj[,'logN1'] = logN[,1]
       #
-      xhat_tj = outer( rep(1,nrow(tsdata)), mu_j )
+      xhat_tj = outer( rep(1,nrow(x_tj)), mu_j )
+      model = read_model(
+        sem = conf$dsem_specification,
+        times = seq_len(nrow(x_tj)),
+        variables = colnames(dsem_timeseries),
+        covs = colnames(x_tj),
+        quiet = FALSE
+      )
       ram = dsem_make_matrices(
         beta_p = beta_z,
         model = model,
-        times = as.numeric(time(tsdata)),
-        variables = colnames(tsdata)
+        times = seq_len(nrow(x_tj)),
+        variables = colnames(x_tj)
       )
       Rho_kk = AD(ram$P_kk)
-      IminusRho_kk = Matrix::Diagonal(prod(dim(tsdata))) - Rho_kk
+      IminusRho_kk = Matrix::Diagonal(prod(dim(x_tj))) - Rho_kk
       # Assemble variance
       Gamma_kk = AD(ram$G_kk)
       V_kk = Matrix::t(Gamma_kk) %*% Gamma_kk

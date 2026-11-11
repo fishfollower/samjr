@@ -233,6 +233,7 @@ read.data.files <- function(dir = "."){
   sw <- read.ices("sw.dat")
   lf <- read.ices("lf.dat")
   surveys <- read.ices("survey.dat")
+  dsem_timeseries <- read.csv( "dsem_timeseries.csv" )
   setup.sam.data(surveys = surveys,
                  residual.fleet = cn,
                  prop.mature = mo,
@@ -243,7 +244,8 @@ read.data.files <- function(dir = "."){
                  prop.f = pf,
                  prop.m = pm,
                  natural.mortality = nm,
-                 land.frac = lf)
+                 land.frac = lf,
+                 dsem_timeseries = dsem_timeseries)
 }
 
 ##' Combine the data sources to a samjr data object
@@ -280,7 +282,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
                            catch.mean.weight = NULL, dis.mean.weight = NULL,
                            land.mean.weight = NULL, natural.mortality = NULL,
                            prop.f = NULL, prop.m = NULL, land.frac = NULL,
-                           recapture = NULL){
+                           recapture = NULL, dsem_timeseries = NULL){
   if(!is.null(fleets))
     stop("samjr v1: 'fleets' (commercial fleets with effort) not supported")
   if(is.null(residual.fleet))
@@ -432,6 +434,21 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     idxCor[fi, matchCols[valid]] <- (addBase + seq_along(okIdx))[valid]
   }
 
+  # Pad dsem_recruitment as needed
+  if(!is.null(dsem_timeseries)){
+    if(!("Year" %in% colnames(dsem_timeseries))){
+      stop("dsem_timeseries must contain column Year")
+    }
+    dsem_timeseries = merge(
+      data.frame(Year = newyear),
+      dsem_timeseries,
+      all.x = TRUE,
+      by = "Year"
+    )
+  }else{
+    dsem_timeseries = data.frame( Year = newyear )
+  }
+
   ret <- list(
     noFleets = length(type),
     fleetTypes = as.integer(type),
@@ -456,7 +473,8 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     disMeanWeight = cutY(dis.mean.weight),
     landMeanWeight = cutY(land.mean.weight),
     propF = cutY(prop.f),
-    propM = cutY(prop.m)
+    propM = cutY(prop.m),
+    dsem_timeseries = dsem_timeseries
   )
   attr(ret, "fleetNames") <- name
   class(ret) <- "sam_data"

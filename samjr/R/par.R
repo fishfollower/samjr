@@ -115,5 +115,31 @@ defpar <- function(data, conf, spinoutyear = 10){
     par$logNM          <- matrix(0, nrow = length(dat$year) + spinoutyear,
                                   ncol = length(dat$age))
   }
+  #
+  if(conf$dsem_specification != ""){
+    # Pull out
+    dsem_timeseries = dat$dsem_timeseries
+    dsem_timeseries$logN1 = 0
+    dsem_timeseries = as.matrix(dsem_timeseries[,setdiff(colnames(dsem_timeseries),"Year")])
+    # Parse model
+    model = read_model(
+      sem = conf$dsem_specification,
+      times = as.numeric(dat$dsem_timeseries[,'Year']),
+      variables = colnames(dsem_timeseries),
+      covs = colnames(dsem_timeseries),
+      quiet = FALSE
+    )
+    par$beta_z = rep(1, max(model$parameter))
+    par$x_tj = ifelse( is.na(dsem_timeseries), rnorm(prod(dim(dsem_timeseries))), dsem_timeseries )
+    par$mu_j = rep(0, ncol(dsem_timeseries))
+    #
+    map = list()
+    map$x_tj = factor( ifelse(is.na(par$x_tj), seq_len(prod(dim(par$x_tj))), NA) )
+    # Probably eliminate [1] instead of
+    map$logSdLogN = factor(c(NA, 2))
+  }else{
+    map = NULL
+  }
+  attr(par, "map") = map
   par
 }
