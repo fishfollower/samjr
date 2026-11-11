@@ -34,7 +34,7 @@ on every test case shipped with the package.
 # from a local clone:
 install.packages(".", repos = NULL, type = "source")
 # or:
-remotes::install_github("fishfollower/samjr")
+remotes::install_github("fishfollower/samjr/samjr")
 ```
 
 samjr depends on `RTMB` and uses base R for everything else (`Matrix`,
