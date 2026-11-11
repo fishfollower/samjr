@@ -298,7 +298,7 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' c(ricker = fitR$opt$objective, custom = fitC$opt$objective)
 ##' }
 ##' @export
-sam.fit <- function(data, conf, parameters, map = list(),
+sam.fit <- function(data, conf, parameters, map = attr(par,"map"),
                     rm.unidentified = FALSE, lower = NULL, upper = NULL,
                     newtonsteps = 3, run = TRUE, silent = FALSE,
                     convplot = FALSE, logSRfun = NULL, logSRinit = NULL, ...){
@@ -320,7 +320,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
   if(dat$catchWeightModel >= 1) randomVars <- c(randomVars, "logCW")
   if(dat$matureModel       >= 1) randomVars <- c(randomVars, "logitMO")
   if(dat$mortalityModel    >= 1) randomVars <- c(randomVars, "logNM")
-  if( "x_tj" %in% names(parameters)) randomVars <- c(randomVars, "x_tj")
+  if( "x_tj" %in% names(parameters)) randomVars <- c(randomVars, c("x_tj", "mu_j")) # to match SAM, using RW for recruitment with no penalty on first value
   #browser()
   obj <- MakeADFun(f, parameters,
                    random = randomVars,

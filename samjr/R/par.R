@@ -25,6 +25,7 @@
 defpar <- function(data, conf, spinoutyear = 10){
   dat <- toBabyDat(data, conf, spinoutyear = spinoutyear)
   par <- list()
+  map = list()
   par$logSdLogN <- c(0, 0)
   par$logsdF <- numeric(max(dat$keyVarFperState))
   par$rickerpar <- if(dat$srmode == 1) c(1, 1) else numeric(0)
@@ -133,12 +134,9 @@ defpar <- function(data, conf, spinoutyear = 10){
     par$x_tj = ifelse( is.na(dsem_timeseries), rnorm(prod(dim(dsem_timeseries))), dsem_timeseries )
     par$mu_j = rep(0, ncol(dsem_timeseries))
     #
-    map = list()
     map$x_tj = factor( ifelse(is.na(par$x_tj), seq_len(prod(dim(par$x_tj))), NA) )
     # Probably eliminate [1] instead of
     map$logSdLogN = factor(c(NA, 2))
-  }else{
-    map = NULL
   }
   attr(par, "map") = map
   par
