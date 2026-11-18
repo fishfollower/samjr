@@ -102,6 +102,8 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
   dat$keySd <- conf$keyVarObs + 1
   dat$keySd[dat$keySd <= 0] <- NA
   dat$predVarObsLink <- if(is.null(conf$predVarObsLink)) NULL else conf$predVarObsLink + 1L
+  dat$maxAgePlusGroup = conf$maxAgePlusGroup
+  dat$maxAgePerFleet <- data$maxAgePerFleet
   nObsTot <- length(data$logobs)
   xtraSdIdxByObs <- rep(NA_integer_, nObsTot)
   if(!is.null(conf$keyXtraSd) && nrow(conf$keyXtraSd) > 0){

@@ -213,13 +213,29 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       }
       a <- aux[i, 3] - minAge + 1
       Z <- F[y, a] + M[y, a]
+      pg <- aux[i, 3] == maxAgePerFleet[ff]
       if(fleetTypes[ff] == 0){
-        logPred[i] <- logN[y, a] - log(Z) + log(-expm1(-Z)) + logFF[y, a]
+        if(!(pg & maxAgePlusGroup[ff])){
+          logPred[i] <- logN[y, a] - log(Z) + log(-expm1(-Z)) + logFF[y, a]
+        }else{
+          logPred[i] <- -Inf
+          for(aa in a: dim(M)[2]){
+            ZZ <- F[y, aa] + M[y, aa]
+            logPred[i] <- logspace_add(logPred[i],  logN[y, aa] - log(ZZ) + log(-expm1(-ZZ)) + logFF[y, aa])
+          }
+        }
         if(!is.na(scaleIdxByObs[i])){
           logPred[i] <- logPred[i] - logScale[scaleIdxByObs[i]]
         }
       }else if(fleetTypes[ff] == 2){
-        survPred <- logN[y, a] - Z * sampleTimes[ff]
+        if(!(pg & maxAgePlusGroup[ff])){
+          survPred <- logN[y, a] - Z * sampleTimes[ff]
+        }else{
+          survPred <- -Inf
+          for(aa in a: dim(M)[2]){
+            survPred <- logspace_add(survPred, logN[y, aa] - (F[y, aa] + M[y, aa]) * sampleTimes[ff])
+          } 
+        }
         if(!is.null(keyQpow) && !is.na(keyQpow[ff, a]) && keyQpow[ff, a] >= 1){
           survPred <- survPred * exp(logQpow[keyQpow[ff, a]])
         }
