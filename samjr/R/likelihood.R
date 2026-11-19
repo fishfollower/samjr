@@ -88,12 +88,13 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 ##' @keywords internal
 ##' @noRd
 makeBabyLikelihood <- function(dat, logSRfun = NULL){
+  naObs <- is.na(dat$logobs)
   function(par){
     getAll(par, dat)
     resFlag <- if(is.null(dat$resFlag)) 0L else as.integer(dat$resFlag)
     logobs <- OBS(logobs)
     osaMode <- inherits(logobs, "osa")
-    if(length(missing) > 0){
+    if(length(missing) > 0 && !osaMode){
       logobs <- AD(logobs)
       logobs[is.na(logobs)] <- missing
     }
@@ -114,6 +115,8 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
     if(osaMode){
       jnll <- jnll - sum(dnorm(logN[1, ], 0, 10, log = TRUE))
       jnll <- jnll - sum(dnorm(logF[1, ], 0, 10, log = TRUE))
+      # keeps unused 'missing' random effects identifiable in the OSA refit
+      jnll <- jnll - sum(dnorm(missing, 0, 1, log = TRUE))
     }
 
     if(stockWeightModel >= 1){
@@ -315,6 +318,13 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
             effSd[j] <- baseSd
           }
         }
+        if(osaMode){
+          ok <- !naObs[idx]
+          if(!any(ok)) next
+          idx <- idx[ok]
+          effSd <- effSd[ok]
+          R <- R[ok, ok, drop = FALSE]
+        }
         if(is.null(thisCor) && covType[ff] == 0){
           jnll <- jnll - sum(dnorm(logobs[idx], logPred[idx], effSd, log = TRUE))
         }else{
@@ -325,7 +335,7 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
     }
     if(any(isTag) && length(logitReleaseSurvival) > 0){
       maxAgeIdx <- length(age)
-      for(i in which(isTag)){
+      for(i in which(isTag & !(osaMode & naObs))){
         y     <- aux[i, 1] - minYear + 1
         a_raw <- aux[i, 3] - minAge + 1
         a     <- if(a_raw > maxAgeIdx) maxAgeIdx else a_raw
