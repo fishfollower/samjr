@@ -77,6 +77,12 @@ setS <- function(x){
 ##' \item{\code{ckmrlLinf}, \code{ckmrlK}, \code{ckmrlT0},
 ##' \code{ckmrlSdLogLength}}{von Bertalanffy growth and the log-normal spread
 ##' of length at age. Fixed, not estimated.}
+##' \item{\code{ckmrlPlusExtra}}{how many true ages beyond \code{maxAge} a
+##' plus-group fish is allowed to be. A fish recorded at \code{maxAge} is that
+##' age or older, so it is longer, more fecund and born earlier than an axis
+##' stopping there can express. Zero, the default, ignores this. Five is the
+##' value Bravington's note suggests when it matters. The weights over the
+##' extra ages are reconstructed from the survival recursion and normalised.}
 ##' \item{\code{ckmrlOmega}, \code{ckmrlEstimateOmega}}{the lucky-litter
 ##' effect \eqn{\omega} and whether to estimate it. Within one spawning season
 ##' reproductive success varies for reasons length and age do not capture, so
@@ -220,6 +226,7 @@ defcon <- function(dat, level = 1){
   ret$ckmrlT0 <- 0
   ret$ckmrlSdLogLength <- 0.1
   ret$ckmrlRefLength <- 50
+  ret$ckmrlPlusExtra <- 0
   ret
 }
 

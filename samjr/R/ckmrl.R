@@ -38,7 +38,8 @@ ckmrlSettings <- function(conf){
        k       = as.numeric(g("ckmrlK", 0.35)),
        t0      = as.numeric(g("ckmrlT0", 0)),
        sdLogLength = as.numeric(g("ckmrlSdLogLength", 0.1)),
-       refLength   = as.numeric(g("ckmrlRefLength", 50)))
+       refLength   = as.numeric(g("ckmrlRefLength", 50)),
+       plusExtra   = max(0L, as.integer(g("ckmrlPlusExtra", 0L))))
 }
 
 ##' Internal: validate a length-based CKMR pair table.
@@ -85,7 +86,16 @@ ckmrlPrep <- function(ckmrl, years, ages, set, propMat = NULL){
   nY <- length(years); nA <- length(ages)
   minY <- min(years); maxY <- max(years)
   minA <- min(ages);  maxA <- max(ages)
-  G <- ckmrlGrid(set, ages)
+  ## The age axis the probabilities run on is the TRUE age, which extends
+  ## plusExtra years past the plus group: a fish recorded at maxAge is that age
+  ## or older, so it is longer, more fecund and born earlier than an axis
+  ## stopping at maxAge can express. plusExtra = 0 gives tAges == ages and every
+  ## quantity below collapses back to the model axis exactly.
+  K     <- set$plusExtra
+  tAges <- minA:(maxA + K)
+  nT    <- length(tAges); maxT <- max(tAges)
+  G  <- ckmrlGrid(set, ages)
+  GT <- ckmrlGrid(set, tAges)
   nPair <- nrow(ckmrl)
 
   ## ---- cells: the distinct (year, length) combinations the rows refer to ----
@@ -99,50 +109,54 @@ ckmrlPrep <- function(ckmrl, years, ages, set, propMat = NULL){
   if(!is.null(propMat)) troPos <- rowSums(propMat > 0, na.rm = TRUE) > 0
   moPos <- if(is.null(propMat)) matrix(TRUE, nY, nA)
            else (propMat > 0 & !is.na(propMat))
+  moPos <- moPos[, pmin(seq_len(nT), nA), drop = FALSE]
   yI <- function(y) y - minY + 1L
 
   ## ---- which rows can contribute at all ----
   ## the full (cell, cell, age, age) grid, in plain R and once, purely to find
   ## the rows whose probability is structurally zero
-  I  <- rep(seq_len(nC), times = nC*nA*nA)
-  J  <- rep(rep(seq_len(nC), each = nC), times = nA*nA)
-  AP <- rep(rep(seq_len(nA), each = nC*nC), times = nA)
-  AJ <- rep(seq_len(nA), each = nC*nC*nA)
-  anyBy <- function(v) matrix(as.vector(matrix(as.numeric(v), nC*nC, nA*nA) %*%
-                                        rep(1, nA*nA)) > 0, nC, nC)
+  I  <- rep(seq_len(nC), times = nC*nT*nT)
+  J  <- rep(rep(seq_len(nC), each = nC), times = nT*nT)
+  AP <- rep(rep(seq_len(nT), each = nC*nC), times = nT)
+  AJ <- rep(seq_len(nT), each = nC*nC*nT)
+  anyBy <- function(v) matrix(as.vector(matrix(as.numeric(v), nC*nC, nT*nT) %*%
+                                        rep(1, nT*nT)) > 0, nC, nC)
   ## parent-offspring, one orientation: I is the parent, J the offspring
-  b   <- cy[J] - ages[AJ]
-  apb <- ages[AP] - (cy[I] - b)
-  okD <- b >= minY & b <= maxY & cy[I] >= b & apb >= minA & apb <= maxA
+  b   <- cy[J] - tAges[AJ]
+  apb <- tAges[AP] - (cy[I] - b)
+  okD <- b >= minY & b <= maxY & cy[I] >= b & apb >= minA & apb <= maxT
   okD[is.na(okD)] <- FALSE
-  bc  <- pmin(pmax(yI(b), 1L), nY); ac <- pmin(pmax(apb - minA + 1L, 1L), nA)
+  bc  <- pmin(pmax(yI(b), 1L), nY); ac <- pmin(pmax(apb - minA + 1L, 1L), nT)
   okD <- okD & troPos[bc] & moPos[cbind(bc, ac)]
   okD <- anyBy(okD)
   okPOP <- okD | t(okD)
   ## half-sibling: both birth years in range, and some mature shared parent
-  b1 <- cy[I] - ages[AP]; b2 <- cy[J] - ages[AJ]
+  b1 <- cy[I] - tAges[AP]; b2 <- cy[J] - tAges[AJ]
   lo <- pmin(b1, b2); hi <- pmax(b1, b2); d <- hi - lo
   okH <- lo >= minY & hi <= maxY
   okH[is.na(okH)] <- FALSE
   loc <- pmin(pmax(yI(lo), 1L), nY); hic <- pmin(pmax(yI(hi), 1L), nY)
-  matePos <- Reduce(`|`, lapply(seq_len(nA), function(a)
+  matePos <- Reduce(`|`, lapply(seq_len(nT), function(a)
     moPos[cbind(loc, rep(a, length(loc)))] &
-    moPos[cbind(hic, pmin(a + d, nA))]))
+    moPos[cbind(hic, pmin(a + d, nT))]))
   okHSP <- anyBy(okH & troPos[loc] & troPos[hic] & matePos)
 
   ## ---- birth years in play, and the gaps between them ----
-  bs <- sort(unique(as.vector(outer(cy, ages, "-"))))
+  bs <- sort(unique(as.vector(outer(cy, tAges, "-"))))
   bs <- bs[bs >= minY & bs <= maxY]
 
   list(nY = nY, nA = nA, nPair = nPair, nC = nC,
+       nT = nT, tAges = tAges, maxT = maxT, plusExtra = K,
        years = years, ages = ages, minY = minY, maxY = maxY,
        minA = minA, maxA = maxA, refLength = set$refLength,
        cy = cy, clen = clen, ci1 = ci1, ci2 = ci2,
        sy = sort(unique(cy)), bset = bs, maxd = max(bs) - min(bs),
-       Lmean = G$Lmean, sdLog = G$sdL,
-       ## P[length | age] per cell - pure data, since growth is fixed
+       Lmean = GT$Lmean, sdLog = G$sdL,
+       ## P[length | true age] per cell - pure data, since growth is fixed.
+       ## The weights that turn this into P[length | recorded age] for a
+       ## plus-group fish depend on Z, so they are applied in ckmrlProb.
        PlA = t(vapply(seq_len(nC), function(i)
-                stats::dlnorm(clen[i], log(G$Lmean), G$sdL), numeric(nA))),
+                stats::dlnorm(clen[i], log(GT$Lmean), G$sdL), numeric(nT))),
        okPOP = okPOP, okHSP = okHSP,
        popRow = which(okPOP[cbind(ci1, ci2)]),
        hspRow = which(okHSP[cbind(ci1, ci2)]))
@@ -190,6 +204,7 @@ ckmrlPrep <- function(ckmrl, years, ages, set, propMat = NULL){
 ckmrlProb <- function(N, Z, MO, Csamp, psi, prep, omega = 1){
   years <- prep$years; ages <- prep$ages; nC <- prep$nC
   minY <- prep$minY; maxY <- prep$maxY; minA <- prep$minA; maxA <- prep$maxA
+  tAges <- prep$tAges; maxT <- prep$maxT; K <- prep$plusExtra
   lref <- prep$refLength; sy <- prep$sy; bset <- prep$bset
   cc <- seq_len(nC)
 
@@ -199,10 +214,45 @@ ckmrlProb <- function(N, Z, MO, Csamp, psi, prep, omega = 1){
   MOa <- oa(MO,    dimseq = list(y = years, a = ages))
   Za  <- oa(Z,     dimseq = list(y = years, a = ages))
   Cs  <- oa(Csamp, dimseq = list(y = years, a = ages))
-  Lm  <- oa(prep$Lmean, dimseq = list(a = ages))
-  Pl  <- oa(prep$PlA,   dimseq = list(c = cc, a = ages))
+  Lm  <- oa(prep$Lmean, dimseq = list(a = tAges))
+  Pl  <- oa(prep$PlA,   dimseq = list(c = cc, a = tAges))
   CY  <- oa(prep$cy,    dimseq = list(c = cc))
   CL  <- oa(prep$clen,  dimseq = list(c = cc))
+
+  ## ---- how the plus group divides over the true ages it contains ----
+  ## Entrants to the plus group, aged on by the plus-group mortality, then
+  ## normalised. Dividing the reconstruction by N[y,maxA] instead would only be
+  ## a distribution if the plus group accumulated deterministically; SAM's N
+  ## carries process noise, so it does not, and on the mackerel fit the
+  ## reconstruction comes to 1.12 times N[y,maxA]. Normalising also puts the
+  ## truncated tail back in proportionally rather than discarding it.
+  ##
+  ## With plusExtra = 0 none of this runs and the arrays below are the ones
+  ## passed in, so the option is off in the strict sense: identical arithmetic.
+  if(K > 0L){
+    kset <- 0:K
+    yb   <- function(y) pmax(y - 1L, minY)
+    ent  <- al(indices = list(y = years),
+               Noa[yb(y), maxA-1L]*exp(-Za[yb(y), maxA-1L]))
+    pgRaw <- oa(rep(0*N[1], length(years)*length(kset)),
+                dimseq = list(y = years, k = kset))
+    pgRaw[,0] <- ent
+    for(kk in seq_len(K))
+      pgRaw[,kk] <- al(indices = list(y = years),
+                       pgRaw[yb(y), kk-1L]*exp(-Za[yb(y), maxA]))
+    wsum <- al(indices = list(y = years), SUMOVER = list(k = kset), pgRaw[y,k])
+    Wpg  <- al(indices = list(y = years, k = kset), pgRaw[y,k]/wsum[y])
+    ## the plus-group column splits across its true ages; every other age is
+    ## carried straight over. Maturity and mortality are not split, since a
+    ## fish older than maxAge is still described by the plus group's rates.
+    spl <- function(X) al(indices = list(y = years, a = tAges), {
+      p <- (a >= maxA)
+      (1-p)*X[y, pmin(a, maxA)] + p*X[y, maxA]*Wpg[y, pmax(a - maxA, 0L)]
+    })
+    hold <- function(X) al(indices = list(y = years, a = tAges),
+                           X[y, pmin(a, maxA)])
+    Noa <- spl(Noa); Cs <- spl(Cs); MOa <- hold(MOa); Za <- hold(Za)
+  }
 
   ## Fecundity has to be averaged over the length a fish of a given age might
   ## have, and in the half-sibling term over the lengths ONE fish has at two
@@ -224,44 +274,44 @@ ckmrlProb <- function(N, Z, MO, Csamp, psi, prep, omega = 1){
   ## replaced, which converged only as 1/nq.
   kMean <- exp(psi^2 * prep$sdLog^2 / 2)
   kPair <- exp(2 * psi^2 * prep$sdLog^2)
-  phiB <- al(indices = list(a = ages), (Lm[a]/lref)^psi)
-  mPhi <- al(indices = list(a = ages), phiB[a] * kMean)
-  TRO  <- al(indices = list(y = years), SUMOVER = list(a = ages),
+  phiB <- al(indices = list(a = tAges), (Lm[a]/lref)^psi)
+  mPhi <- al(indices = list(a = tAges), phiB[a] * kMean)
+  TRO  <- al(indices = list(y = years), SUMOVER = list(a = tAges),
              Noa[y,a]*MOa[y,a]*mPhi[a])
 
   ## age given length and year, per cell, from the sampled composition
-  csum <- al(indices = list(y = years), SUMOVER = list(a = ages), Cs[y,a])
-  raw  <- al(indices = list(c = cc, a = ages), Pl[c,a]*Cs[CY[c],a]/csum[CY[c]])
-  rsum <- al(indices = list(c = cc), SUMOVER = list(a = ages), raw[c,a])
-  A    <- al(indices = list(c = cc, a = ages), raw[c,a]/rsum[c])
+  csum <- al(indices = list(y = years), SUMOVER = list(a = tAges), Cs[y,a])
+  raw  <- al(indices = list(c = cc, a = tAges), Pl[c,a]*Cs[CY[c],a]/csum[CY[c]])
+  rsum <- al(indices = list(c = cc), SUMOVER = list(a = tAges), raw[c,a])
+  A    <- al(indices = list(c = cc, a = tAges), raw[c,a]/rsum[c])
 
   ## ---- parent-offspring: sum over the parent's age, then the offspring's ----
-  S <- al(indices = list(c = cc, yj = sy, aj = ages), SUMOVER = list(ap = ages), {
+  S <- al(indices = list(c = cc, yj = sy, aj = tAges), SUMOVER = list(ap = tAges), {
     b   <- yj - aj
     apb <- ap - (CY[c] - b)
-    ok  <- (b >= minY)*(b <= maxY)*(CY[c] >= b)*(apb >= minA)*(apb <= maxA)
-    bc  <- pmin(pmax(b, minY), maxY); ac <- pmin(pmax(apb, minA), maxA)
+    ok  <- (b >= minY)*(b <= maxY)*(CY[c] >= b)*(apb >= minA)*(apb <= maxT)
+    bc  <- pmin(pmax(b, minY), maxY); ac <- pmin(pmax(apb, minA), maxT)
     ok * A[c,ap] * MOa[bc,ac] * ((Lm[ac]/Lm[ap]*CL[c])/lref)^psi / TRO[bc]
   })
-  D   <- al(indices = list(i = cc, j = cc), SUMOVER = list(aj = ages),
+  D   <- al(indices = list(i = cc, j = cc), SUMOVER = list(aj = tAges),
             S[i,CY[j],aj]*A[j,aj])
   POP <- al(indices = list(i = cc, j = cc), 2*(D[i,j] + D[j,i]))
 
   ## ---- half-sibling ----
   ## survival of the shared parent across the gap, one pass per gap
-  cum  <- al(indices = list(b = bset, a = ages), 0*Za[minY,minA])
-  SURV <- oa(rep(0*N[1], length(bset)*length(ages)*(prep$maxd+1L)),
-             dimseq = list(b = bset, a = ages, d = 0:prep$maxd))
+  cum  <- al(indices = list(b = bset, a = tAges), 0*Za[minY,minA])
+  SURV <- oa(rep(0*N[1], length(bset)*length(tAges)*(prep$maxd+1L)),
+             dimseq = list(b = bset, a = tAges, d = 0:prep$maxd))
   SURV[,,0] <- exp(-cum)
   for(k in seq_len(prep$maxd)){
-    cum <- al(indices = list(b = bset, a = ages),
-              cum[b,a] + Za[pmin(b+k-1L, maxY), pmin(a+k-1L, maxA)])
+    cum <- al(indices = list(b = bset, a = tAges),
+              cum[b,a] + Za[pmin(b+k-1L, maxY), pmin(a+k-1L, maxT)])
     SURV[,,k] <- exp(-cum)
   }
   PBB0 <- al(indices = list(b1 = bset, b2 = bset),
-             SUMOVER = list(a = ages), {
+             SUMOVER = list(a = tAges), {
     lo <- pmin(b1,b2); hi <- pmax(b1,b2); d <- hi - lo
-    a2 <- pmin(a + d, maxA)
+    a2 <- pmin(a + d, maxT)
     4*Noa[lo,a]*MOa[lo,a]*phiB[a]*SURV[lo,a,d]*MOa[hi,a2]*phiB[a2]*kPair /
       (TRO[lo]*TRO[hi])
   })
@@ -271,12 +321,12 @@ ckmrlProb <- function(N, Z, MO, Csamp, psi, prep, omega = 1){
   ## omega scales that term and only that term, and is 1 by default.
   PBB <- al(indices = list(b1 = bset, b2 = bset),
             PBB0[b1,b2] * ((b1 == b2)*omega + (b1 != b2)))
-  T1 <- al(indices = list(c = cc, yj = sy, a2 = ages), SUMOVER = list(a1 = ages), {
+  T1 <- al(indices = list(c = cc, yj = sy, a2 = tAges), SUMOVER = list(a1 = tAges), {
     b1 <- CY[c] - a1; b2 <- yj - a2
     ok <- (b1 >= minY)*(b1 <= maxY)*(b2 >= minY)*(b2 <= maxY)
     ok * A[c,a1] * PBB[pmin(pmax(b1,minY),maxY), pmin(pmax(b2,minY),maxY)]
   })
-  HSP <- al(indices = list(i = cc, j = cc), SUMOVER = list(a2 = ages),
+  HSP <- al(indices = list(i = cc, j = cc), SUMOVER = list(a2 = tAges),
             T1[i,CY[j],a2]*A[j,a2])
 
   ## gather the cell grid back onto the pair rows
