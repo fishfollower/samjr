@@ -86,7 +86,11 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
     if(!is.null(conf$keyVarObs))     conf$keyVarObs     <- .reidx(conf$keyVarObs[suf, , drop = FALSE])
     if(!is.null(conf$predVarObsLink))conf$predVarObsLink<- .reidx(conf$predVarObsLink[suf, , drop = FALSE])
     if(!is.null(conf$obsCorStruct))  conf$obsCorStruct  <- conf$obsCorStruct[suf]
-    if(!is.null(conf$maxAgePlusGroup))conf$maxAgePlusGroup <- conf$maxAgePlusGroup[suf]
+    if(!is.null(conf$maxAgePlusGroup)){
+      if(length(data$maxAgePlusGroup)>1){
+        conf$maxAgePlusGroup <- conf$maxAgePlusGroup[suf]
+      }
+    }
     if(!is.null(conf$keyCorObs))     conf$keyCorObs     <- .reidx(conf$keyCorObs[suf, , drop = FALSE])
     if(!is.null(conf$keyScaledYears) && length(conf$keyScaledYears) > 0){
       yidx <- conf$keyScaledYears %in% data$aux[data$aux[, "fleet"] == 1, "year"]
@@ -95,7 +99,11 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
       if(!is.null(conf$keyParScaledYA))
         conf$keyParScaledYA <- .reidx(conf$keyParScaledYA[yidx, , drop = FALSE])
     }
-    if(!is.null(conf$fixVarToWeight))   conf$fixVarToWeight  <- conf$fixVarToWeight[suf]
+    if(!is.null(conf$fixVarToWeight)){
+      if(length(conf$fixVarToWeight) > 1){
+        conf$fixVarToWeight  <- conf$fixVarToWeight[suf]
+      }
+    }
     attr(data, "conf") <- conf
   }
   data
