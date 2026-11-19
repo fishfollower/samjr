@@ -181,7 +181,7 @@ forecast.sam <- function(fit,
   pl <- fitParList(fit)
 
   cmMode <- useRproc && !deterministic && dat$srmode == 100
-  wscMode <- useRproc && !deterministic && dat$srmode %in% c(100, 101, 102)
+  wscMode <- useRproc && !deterministic && dat$srmode %in% c(100, 101, 102, 103)
   if(wscMode){
     if(dat$srmode %in% c(100, 101)) cmBeta <- exp(pl$cmpar[1])
     wscAt <- function(yr){
@@ -194,7 +194,7 @@ forecast.sam <- function(fit,
     if(yIdx < 2) stop("srmode 100 forecast needs year.base after the first data year")
     cmphi <- 2 * stats::plogis(pl$cmpar[2]) - 1
   }
-  if(useRproc && !deterministic && dat$srmode %in% c(62, 102)){
+  if(useRproc && !deterministic && dat$srmode %in% c(62, 102, 103)){
     ar1Mu <- pl$ar1par[1]
     ar1Rho <- 2 * stats::plogis(pl$ar1par[2]) - 1
   }
@@ -390,6 +390,11 @@ forecast.sam <- function(fit,
         } else if(dat$srmode == 102){
           Nnew[, 1] <- exp((1 - ar1Rho) * (ar1Mu + pl$ar1par[3] * wscAt(y - 1)) +
                            ar1Rho * log(Nmat[, 1]) +
+                           stats::rnorm(Nsim, 0, exp(pl$logSdLogN[1])))
+        } else if(dat$srmode == 103){
+          muPrev <- ar1Mu + if(y - 1 > dat$minYear) pl$ar1par[3] * wscAt(y - 2) else 0
+          Nnew[, 1] <- exp(ar1Mu + pl$ar1par[3] * wscAt(y - 1) +
+                           ar1Rho * (log(Nmat[, 1]) - muPrev) +
                            stats::rnorm(Nsim, 0, exp(pl$logSdLogN[1])))
         } else if(dat$srmode == 100){
           eSim <- cmphi * eSim + stats::rnorm(Nsim, 0, exp(pl$logSdLogN[1]))

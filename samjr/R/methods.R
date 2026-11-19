@@ -398,7 +398,8 @@ modelDescription <- function(fit){
   srLab <- c("0" = "random walk on log-recruitment",
              "1" = "Ricker", "2" = "Beverton-Holt",
              "62" = "AR(1) on log-recruitment",
-             "102" = "AR(1) on log-recruitment with wsc in the mean")
+             "102" = "AR(1) on log-recruitment with wsc in the mean",
+             "103" = "AR(1) around a wsc-driven time-varying mean")
   srKey <- as.character(conf$stockRecruitmentModelCode)
   push(sprintf("- Recruitment: %s",
                 if(srKey %in% names(srLab)) srLab[[srKey]]
