@@ -99,6 +99,9 @@ residuals.sam <- function(object, discrete = FALSE,
   res <- oneStepPredict(object$obj, observation.name = "logobs",
                         discrete = discrete, subset = subset, ...)
   cat("One-observation-ahead residuals. Done\n")
+  isMiss <- is.na(object$data$logobs[subset])
+  res[isMiss, ] <- NA
+  res$residual[isMiss] <- 0
   ret <- cbind(object$data$aux[subset, ], res)
   attr(ret, "fleetNames") <- attr(object$data, "fleetNames")
   class(ret) <- c("samres", "data.frame")

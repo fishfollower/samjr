@@ -89,6 +89,8 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 ##' @noRd
 makeBabyLikelihood <- function(dat, logSRfun = NULL){
   naObs <- is.na(dat$logobs)
+  # placeholder so OBS() sees a complete data vector; the values come from 'missing'
+  dat$logobs[naObs] <- 0
   function(par){
     getAll(par, dat)
     resFlag <- if(is.null(dat$resFlag)) 0L else as.integer(dat$resFlag)
@@ -96,7 +98,7 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
     osaMode <- inherits(logobs, "osa")
     if(length(missing) > 0 && !osaMode){
       logobs <- AD(logobs)
-      logobs[is.na(logobs)] <- missing
+      logobs[naObs] <- missing
     }
     nobs <- length(logobs)
     nrow <- nrow(M)
@@ -113,10 +115,10 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
 
     jnll <- 0
     if(osaMode){
+      # wide priors (as in SAM) keep these identifiable while no data term is switched on
       jnll <- jnll - sum(dnorm(logN[1, ], 0, 10, log = TRUE))
       jnll <- jnll - sum(dnorm(logF[1, ], 0, 10, log = TRUE))
-      # keeps unused 'missing' random effects identifiable in the OSA refit
-      jnll <- jnll - sum(dnorm(missing, 0, 1, log = TRUE))
+      jnll <- jnll - sum(dnorm(missing, 0, 10, log = TRUE))
     }
 
     if(stockWeightModel >= 1){
@@ -254,6 +256,12 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       }
     }
 
+    predObs <- logPred
+    if(osaMode && length(missing) > 0){
+      # as in SAM, missing values enter like observations and are switched on by
+      # keep; with data 0 the term equals dnorm(missing, logPred, sd)
+      predObs[naObs] <- logPred[naObs] - missing
+    }
     Slist <- list()
     for(ff in unique(aux[, 2])){
       if(fleetTypes[ff] == 5) next
@@ -318,18 +326,11 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
             effSd[j] <- baseSd
           }
         }
-        if(osaMode){
-          ok <- !naObs[idx]
-          if(!any(ok)) next
-          idx <- idx[ok]
-          effSd <- effSd[ok]
-          R <- R[ok, ok, drop = FALSE]
-        }
         if(is.null(thisCor) && covType[ff] == 0){
-          jnll <- jnll - sum(dnorm(logobs[idx], logPred[idx], effSd, log = TRUE))
+          jnll <- jnll - sum(dnorm(logobs[idx], predObs[idx], effSd, log = TRUE))
         }else{
           Sigma <- outer(effSd, effSd) * R
-          jnll <- jnll - dmvnorm(logobs[idx], logPred[idx], Sigma, log = TRUE)
+          jnll <- jnll - dmvnorm(logobs[idx], predObs[idx], Sigma, log = TRUE)
         }
       }
     }
