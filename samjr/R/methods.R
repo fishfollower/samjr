@@ -318,6 +318,20 @@ nobs.sam <- function(object, ...){
   as.integer(object$data$nobs)
 }
 
+##' Internal: human-readable label for a SAM fleet type code.
+##' @keywords internal
+##' @noRd
+fleetTypeName <- function(t) switch(as.character(t),
+  "0" = "residual catch (catch-at-age)",
+  "1" = "catch-at-age with effort",
+  "2" = "survey index (numbers at age)",
+  "3" = "biomass / catch index",
+  "4" = "mature-fish index (numbers at age)",
+  "5" = "tagging",
+  "6" = "alternative index",
+  "7" = "sum-of-fleets",
+  paste0("type ", t))
+
 ##' Concise markdown description of a fitted samjr model
 ##'
 ##' Walks \code{fit$data} and \code{fit$conf} to produce a short plain-text
@@ -332,17 +346,6 @@ modelDescription <- function(fit){
   data <- fit$data; conf <- fit$conf
   L <- character(0)
   push <- function(x) L[length(L) + 1L] <<- x
-
-  fleetTypeName <- function(t) switch(as.character(t),
-    "0" = "residual catch (catch-at-age)",
-    "1" = "catch-at-age with effort",
-    "2" = "survey index (numbers at age)",
-    "3" = "biomass / catch index",
-    "4" = "mature-fish index (numbers at age)",
-    "5" = "tagging",
-    "6" = "alternative index",
-    "7" = "sum-of-fleets",
-    paste0("type ", t))
 
   ## Group an age vector by its key and produce e.g. "{1-3},{4},{5-6}".
   ## Entries with keyVec < 0 or NA are dropped.
