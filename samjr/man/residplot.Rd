@@ -13,38 +13,32 @@ residplot(
   reverseFleetOrder = FALSE,
   plot = TRUE
 )
-
-residplot(
-  fit,
-  resid = NULL,
-  bubbles = TRUE,
-  palette = hcl.colors(4, palette = "Blues"),
-  p.breaks = c(0, 0.001, 0.05, 0.1, 1),
-  reverseFleetOrder = FALSE,
-  plot = TRUE
-)
 }
 \arguments{
-\item{fit}{an object of class ‘sam’}
+\item{fit}{a fitted \code{sam} object.}
 
-\item{resid}{residuals (object of class "samres") from 'fit'. Calculated from 'fit' if not provided here.}
+\item{resid}{optional precomputed OSA residuals (\code{samres}
+object). Computed from \code{fit} via \code{\link{residuals.sam}}
+if not supplied.}
 
-\item{bubbles}{show bubble plots (default: TRUE)}
+\item{bubbles}{draw bubble plots of the residuals per fleet
+(default \code{TRUE}).}
 
-\item{palette}{vector of colors used for p-value groupings}
+\item{palette}{colours for the discrete p-value scale.}
 
-\item{p.breaks}{breaks for p-value groupings}
+\item{p.breaks}{breakpoints for the p-value scale; one more
+element than \code{palette}.}
 
-\item{reverseFleetOrder}{reverse order of fleets within year for OSA residuals (default: FALSE)}
+\item{reverseFleetOrder}{reverse the fleet order within each year
+when computing the OSA residuals (default \code{FALSE}).}
 
-\item{plot}{plot pvalues (default: TRUE)}
+\item{plot}{draw the plots (default \code{TRUE}). When
+\code{FALSE}, only the p-value list is returned.}
 }
 \value{
 invisibly, a list of p-value matrices:
 \code{bias}, \code{variance}, \code{correlation.age},
 \code{meanvar}, \code{correlation.time}, \code{normality}.
-
-list of matrices with p-values corresponding to the plots
 }
 \description{
 Computes a battery of statistical tests on the one-step-ahead
@@ -57,9 +51,6 @@ Shapiro-Wilk normality test per fleet. Mirrors
 \code{plot.matrix} heatmap with a small base-R helper, and uses
 \code{fit$rep$logPred} (log-scale predictions) for the
 median-split partition; this is invariant under the log transform.
-}
-\details{
-Student's t-test for bias, Chi-square test for variance 1, Ljung-Box test on lag 1 for auto-correlation in time and age directions, F for equal variances for obs < or > median, and Shapiro-Wilk test for normality.
 }
 \seealso{
 \code{\link{residuals.sam}}, \code{\link{procres}}
