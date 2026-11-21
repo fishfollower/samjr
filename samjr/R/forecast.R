@@ -11,13 +11,12 @@
 ##'
 ##' Implemented options: \code{fscale}, \code{fval}, \code{catchval},
 ##' \code{landval}; \code{deterministic}; \code{processNoiseF};
-##' \code{useRproc};
-##' \code{useSWmodel} (uses the GMRF-smoothed stock weights from the fit
-##' when \code{conf$stockWeightModel >= 1}); \code{useCWmodel} (likewise for
-##' catch weights). Out of scope: \code{useMOmodel} / \code{useNMmodel}
-##' (no maturity / mortality process model in samjr yet),
-##' \code{nextssb}, \code{cwF}, \code{customWeights}, \code{customSel},
-##' \code{overwriteSelYears}, multi-fleet, exact-match scenarios.
+##' \code{useRproc}; \code{useSWmodel}, \code{useCWmodel},
+##' \code{useMOmodel} and \code{useNMmodel} (use the GMRF process models
+##' for stock weights, catch weights, maturity and natural mortality from
+##' the fit). Out of scope: \code{nextssb}, \code{cwF},
+##' \code{customWeights}, \code{customSel}, \code{overwriteSelYears},
+##' multi-fleet, exact-match scenarios.
 ##'
 ##' @param fit fitted \code{sam} object from \code{\link{sam.fit}}.
 ##' @param fscale,fval,catchval,landval scenario specifications; for each
@@ -33,10 +32,15 @@
 ##' (recruitment becomes the mean of \code{rec.years}, no F process noise).
 ##' @param processNoiseF if \code{TRUE} add F-process noise from the fitted
 ##' \code{logsdF} between forecast years.
-##' @param useSWmodel,useCWmodel use the smoothed stock/catch weights from
-##' the assessment model instead of the year-by-year averages.
-##' @param useMOmodel,useNMmodel currently must be \code{FALSE}; a
-##' helpful error is raised otherwise.
+##' @param useSWmodel,useCWmodel,useMOmodel,useNMmodel use the GMRF process
+##' model for stock weights, catch weights, maturity or natural mortality
+##' from the fit instead of the observations and \code{ave.years} averages.
+##' Each defaults to \code{TRUE} when the corresponding process
+##' (\code{conf$stockWeightModel}, \code{conf$catchWeightModel},
+##' \code{conf$matureModel}, \code{conf$mortalityModel}) is part of the fit,
+##' and setting it without that process is an error. The process is extended
+##' past the forecast horizon, and in stochastic runs each simulation draws
+##' its own trajectory from the fitted process.
 ##' @param splitLD include landing/discard split columns in the table.
 ##' @param estimate summary function applied per-year (default
 ##' \code{\link[stats]{median}}).

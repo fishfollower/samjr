@@ -7,14 +7,14 @@ samjr trades C++ for readable R while keeping bit-identical fits to SAM
 on every test case shipped with the package.
 
 > **Status.** A small subset of SAM, with the canonical North Sea cod
-> workflow as the reference example. All 29 testmore scripts pass: the
-> fit-based cases are bit-identical to a SAM 0.12.0 reference, and the
-> reference-point cases match SAM 0.12.0 within documented tolerances.
+> workflow as the reference example. All 31 testmore scripts pass,
+> covering fits, tables, residuals, forecasts, reference points and
+> harvest control rules; see [`testmore/STATUS.md`](testmore/STATUS.md).
 
 ## Why samjr?
 
 * **Readable.** The full state-space likelihood lives in
-  [`samjr/R/likelihood.R`](samjr/R/likelihood.R) (~350 lines of base R).
+  [`samjr/R/likelihood.R`](samjr/R/likelihood.R) (under 400 lines of base R).
 * **Hackable.** Want to tweak the recruitment model, the F correlation,
   or add a new biology process? Edit one R file and reinstall. No
   recompilation, no TMB template gymnastics.
@@ -146,7 +146,11 @@ $R(\cdot)$ is one of:
   first year drawn from the stationary distribution;
 * `srmode = 102`: AR(1) with a covariate in the mean,
   $R(\cdot) = (1 - \rho)(\mu + \alpha\,\mathrm{wsc}_{y-1}) + \rho \log N_{a_{\min},\,y-1}$,
-  where `wsc` is read from an optional `wsc.dat` (or `setup.sam.data(wsc = )`).
+  where `wsc` is read from an optional `wsc.dat` (or `setup.sam.data(wsc = )`);
+* a user-supplied function: `sam.fit(..., logSRfun = function(S, pv) ...,
+  logSRinit = )` sets $R(S)$ = `logSRfun(S, pv)` and overrides `srmode`.
+  The parameter vector `pv` is estimated, with its length set by
+  `logSRinit`; `logSRfun` must use AD-compatible operations only.
 
 Process noise:
 
@@ -276,9 +280,11 @@ parameter-name-aware bounds, and an `sdreport` with joint precision).
 | `ntable`, `faytable`, `caytable` | year x age, point estimates |
 | `qtable` | catchabilities by fleet x age |
 | `partable`, `modeltable` | parameter / model summaries |
+| `tableit`, `plotit` | table / plot any ADREPORT quantity (e.g. `"logssb"`) with Estimate, Low, High |
 | `modelDescription` | prose description of the fitted model |
 | `ssbplot`, `fbarplot`, `recplot`, `catchplot`, `tsbplot` | summary plots |
 | `selplot`, `srplot`, `fitplot`, `dataplot`, `parplot`, `sdplot`, `corplot` | diagnostic plots |
+| `predstdplot` | observation SD against prediction for fleets with a prediction-variance link (`conf$predVarObsLink`) |
 | `residuals` (and `plot`/`print` methods) | OSA residuals via `RTMB::oneStepPredict` |
 | `procres` | joint-sample process residuals for $\log N$ and $\log F$ |
 | `residplot` | p-value heatmaps (bias, variance, age/time correlation, mean-variance, normality) |
@@ -306,8 +312,9 @@ $N_{a,y} = N_{a-1,\,y-1}\,e^{-Z_{a-1,\,y-1}}$ (with the oldest age
 accumulating as a plus group), where $Z_{a,y} = F_{a,y} + M_{a,y}$. The
 fitted joint precision is used to draw initial state perturbations,
 recruitment is resampled from `rec.years` (or, with `useRproc = TRUE`,
-simulated from the fitted recruitment process for `srmode` 0, 62 and
-102), and biology can be either
+simulated from the fitted recruitment process for `srmode` 0, 1, 2, 62
+and 102; Ricker and Beverton-Holt use the simulated SSB `minAge` years
+earlier), and biology can be either
 averaged over `ave.years` or sampled from the GMRF process models.
 
 `referencepoints` locates deterministic reference points on a biology
@@ -330,7 +337,7 @@ samjr/
     data/            # nscodData, nscodConf, nscodParameters
     man/             # roxygen-generated .Rd files
     tools/           # build-nscod-data.R
-  testmore/          # 29 end-to-end test cases (script.R + res.EXP)
+  testmore/          # 31 end-to-end test cases (script.R + res.EXP)
   Makefile           # see `make help`
 ```
 
@@ -343,6 +350,7 @@ make build      # doc + R CMD build (produces samjr_*.tar.gz)
 make check      # build + R CMD check --as-cran
 make data       # rebuild data/nscod*.rda from testmore/nscod
 make testmore   # run every testmore/<dir>/script.R; pass = bit-identical
+make readme     # rebuild README.pdf from README.md (pandoc + xelatex)
 ```
 
 `make -j N testmore` runs the testmore suite in parallel. Each test is
