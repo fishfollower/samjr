@@ -39,3 +39,11 @@ with samjr's and SAM's own likelihoods), whereas SAM's `forecast.R`
 mixes `Z = F[y-1] + nm[y]`. The discrepancy surfaces only when the
 forecast horizon falls outside the natMor data range and uses
 `ave.nm`.
+
+`whbrecpred` (blue whiting) is samjr-only: it fits recruitment codes 0,
+62 and 102 (wsc scaled by 1e6), peels 10 years with `retro`, predicts
+recruitment one year ahead from each peel with `forecast(...,
+useRproc = TRUE)`, and writes the RMSE of log(predicted / full run) per
+code. A plot of the predictions is commented out at the end of the
+script. Runs in about 100s, so it needs the Makefile timeout (300s)
+rather than the 120s in `run-all.sh`.

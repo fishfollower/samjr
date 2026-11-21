@@ -6,10 +6,12 @@
 ##' biology (M, SW, MO, PF, PM, LF, LW) is averaged over \code{ave.years}
 ##' (or taken from observations when present); recruitment is sampled
 ##' (or averaged in \code{deterministic} mode) from the assessment-estimated
-##' recruits in \code{rec.years}.
+##' recruits in \code{rec.years}, or simulated from the fitted recruitment
+##' process with \code{useRproc}.
 ##'
 ##' Implemented options: \code{fscale}, \code{fval}, \code{catchval},
 ##' \code{landval}; \code{deterministic}; \code{processNoiseF};
+##' \code{useRproc};
 ##' \code{useSWmodel} (uses the GMRF-smoothed stock weights from the fit
 ##' when \code{conf$stockWeightModel >= 1}); \code{useCWmodel} (likewise for
 ##' catch weights). Out of scope: \code{useMOmodel} / \code{useNMmodel}
@@ -38,6 +40,15 @@
 ##' @param splitLD include landing/discard split columns in the table.
 ##' @param estimate summary function applied per-year (default
 ##' \code{\link[stats]{median}}).
+##' @param useRproc if \code{TRUE} (and not \code{deterministic}), forecast
+##' recruitment by simulating the fitted recruitment process instead of
+##' resampling \code{rec.years}. Implemented for
+##' \code{stockRecruitmentModelCode} 0 (random walk), 1 (Ricker), 2
+##' (Beverton-Holt), 62 (AR(1)) and 102 (AR(1) with \code{wsc} in the mean;
+##' needs \code{wsc} for every forecast year but the last). For Ricker and
+##' Beverton-Holt the recruitment in year \code{y} uses the simulated SSB in
+##' year \code{y - minAge}, or the estimated SSB when that year is before
+##' \code{year.base}; \code{minAge = 0} is not supported.
 ##' @param ... unused.
 ##' @return an object of class \code{samforecast} - a list of per-year
 ##' simulation outputs. Two key attributes:
@@ -155,6 +166,7 @@ forecast.sam <- function(fit,
                          useNMmodel = (fit$conf$mortalityModel >= 1),
                          splitLD = FALSE,
                          estimate = stats::median,
+                         useRproc = FALSE,
                          ...){
 
   ns <- max(c(length(fscale), length(fval), length(catchval), length(landval)))
@@ -178,6 +190,32 @@ forecast.sam <- function(fit,
   yIdx <- which(data$years == year.base)
   if(length(yIdx) == 0) stop("year.base must be in fit$data$years")
   pl <- fitParList(fit)
+
+  useRproc <- useRproc && !deterministic
+  if(useRproc){
+    if(!is.null(fit$logSRfun))
+      stop("useRproc not implemented for a custom logSRfun")
+    if(!(dat$srmode %in% c(0, 1, 2, 62, 102)))
+      stop("useRproc not implemented for srmode ", dat$srmode)
+    sdRproc <- exp(pl$logSdLogN[1])
+    if(dat$srmode %in% c(1, 2)){
+      if(dat$minAge < 1)
+        stop("useRproc with srmode ", dat$srmode, " needs minAge >= 1")
+      srPars <- if(dat$srmode == 1) pl$rickerpar else pl$bhpar
+      ssbFit <- if(dat$minAge > 1) ssbtable(fit)[, "Estimate"] else NULL
+    }
+    if(dat$srmode %in% c(62, 102)){
+      ar1Mu <- pl$ar1par[1]
+      ar1Rho <- 2 * stats::plogis(pl$ar1par[2]) - 1
+    }
+    if(dat$srmode == 102){
+      wscAt <- function(yr){
+        v <- dat$wsc[, 1][yr - dat$minYear + 1]
+        if(is.na(v)) stop("wsc missing for year ", yr)
+        v
+      }
+    }
+  }
 
   baseN <- exp(pl$logN[yIdx, ])
   baseF <- exp(pl$logF[yIdx, ])[keyF]
@@ -355,6 +393,21 @@ forecast.sam <- function(fit,
       Nnew <- matrix(0, Nsim, nages)
       if(deterministic){
         Nnew[, 1] <- mean(recpool)
+      }else if(useRproc){
+        logRprev <- log(Nmat[, 1])
+        logRmean <- if(dat$srmode == 0){
+          logRprev
+        }else if(dat$srmode == 62){
+          ar1Mu + ar1Rho * (logRprev - ar1Mu)
+        }else if(dat$srmode == 102){
+          (1 - ar1Rho) * (ar1Mu + pl$ar1par[3] * wscAt(y - 1)) + ar1Rho * logRprev
+        }else{
+          lagYear <- y - dat$minAge
+          ssbLag <- if(lagYear >= year.base) simlist[[lagYear - year.base + 1]]$ssb
+                    else rep(ssbFit[as.character(lagYear)], Nsim)
+          predictLogR(dat$srmode, srPars, log(ssbLag))
+        }
+        Nnew[, 1] <- exp(logRmean + stats::rnorm(Nsim, 0, sdRproc))
       }else{
         recIdx <- vapply(seq_len(Nsim),
                          function(.) sample.int(length(recpool), 1L),

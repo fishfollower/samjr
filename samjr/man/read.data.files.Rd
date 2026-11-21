@@ -31,5 +31,7 @@ Files read:
   \item{\code{sw.dat}}{stock mean weight at age.}
   \item{\code{lf.dat}}{landing fraction at age.}
   \item{\code{survey.dat}}{survey indices.}
+  \item{\code{wsc.dat}}{optional single-column recruitment covariate
+    (used by \code{stockRecruitmentModelCode} 102); read only if present.}
 }
 }

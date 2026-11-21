@@ -59,7 +59,7 @@ arguments, \code{S} (the relevant lagged spawning stock biomass) and
 \code{pv} (the recruitment parameter vector), returning predicted
 log-recruitment. When non-\code{NULL} it overrides the model selected by
 \code{conf$stockRecruitmentModelCode}, and any conf-based \code{rickerpar}
-/ \code{bhpar} are fixed (mapped out). Use only AD-compatible operations
+/ \code{bhpar} / \code{ar1par} are fixed (mapped out). Use only AD-compatible operations
 (\code{log}, \code{exp}, arithmetic, indexing) so RTMB can tape it.
 Defaults to \code{NULL}.}
 
@@ -84,7 +84,8 @@ Internally the likelihood is built with RTMB; the optimiser is
 }
 \details{
 Supported features in v1: stock-recruitment modes 0 (random walk),
-1 (Ricker) and 2 (Beverton-Holt), or a user-supplied recruitment
+1 (Ricker), 2 (Beverton-Holt), 62 (AR(1)) and 102 (AR(1) with the
+\code{wsc} covariate in the mean), or a user-supplied recruitment
 function via \code{logSRfun} / \code{logSRinit}; F-process correlation modes 0
 (independent), 1 (compound symmetry) and 2 (AR(1)-like decay);
 observation correlation structures \code{ID}, \code{IGAR} (single AR-style

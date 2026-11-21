@@ -170,7 +170,7 @@ read.ices <- function(filen){
       C <- C[, rep(1, maxA - minA + 1)]
     }
     rownames(C) <- minY:maxY
-    C <- C[, 1:length(minA:maxA)]
+    C <- C[, 1:length(minA:maxA), drop = FALSE]
     colnames(C) <- minA:maxA
     if(!is.numeric(C))
       stop(paste("In file", filen, ": Non numeric data values detected"))
@@ -216,6 +216,8 @@ read.ices <- function(filen){
 ##'   \item{\code{sw.dat}}{stock mean weight at age.}
 ##'   \item{\code{lf.dat}}{landing fraction at age.}
 ##'   \item{\code{survey.dat}}{survey indices.}
+##'   \item{\code{wsc.dat}}{optional single-column recruitment covariate
+##'     (used by \code{stockRecruitmentModelCode} 102); read only if present.}
 ##' }
 ##' @param dir directory to read from.
 ##' @return list as produced by \code{\link{setup.sam.data}}.
@@ -232,6 +234,7 @@ read.data.files <- function(dir = "."){
   pm <- read.ices("pm.dat")
   sw <- read.ices("sw.dat")
   lf <- read.ices("lf.dat")
+  wsc <- if(file.exists("wsc.dat")) read.ices("wsc.dat") else NULL
   surveys <- read.ices("survey.dat")
   setup.sam.data(surveys = surveys,
                  residual.fleet = cn,
@@ -243,7 +246,8 @@ read.data.files <- function(dir = "."){
                  prop.f = pf,
                  prop.m = pm,
                  natural.mortality = nm,
-                 land.frac = lf)
+                 land.frac = lf,
+                 wsc = wsc)
 }
 
 ##' Combine the data sources to a samjr data object
@@ -267,20 +271,26 @@ read.data.files <- function(dir = "."){
 ##' @param prop.m year-by-age proportion of M before spawning.
 ##' @param land.frac year-by-age landing fraction.
 ##' @param recapture reserved for future use; must be \code{NULL}.
+##' @param wsc optional recruitment covariate (single-column matrix or vector)
+##' used by \code{stockRecruitmentModelCode} 102. Rows are aligned to the
+##' model years by year row names (or assumed to start at the first model
+##' year when there are none); years after the last model year are kept for
+##' forecasting.
 ##' @return a list of class \code{sam_data} containing fleet metadata
 ##' (\code{fleetTypes}, \code{sampleTimes}, \code{minAgePerFleet},
 ##' \code{maxAgePerFleet}), the observation table (\code{aux}, \code{logobs},
 ##' \code{idx1}, \code{idx2}, \code{nobs}), and the year-by-age biological
 ##' inputs (\code{propMat}, \code{stockMeanWeight}, \code{catchMeanWeight},
 ##' \code{natMor}, \code{landFrac}, \code{disMeanWeight},
-##' \code{landMeanWeight}, \code{propF}, \code{propM}).
+##' \code{landMeanWeight}, \code{propF}, \code{propM}), and \code{wsc} when
+##' supplied.
 ##' @export
 setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
                            prop.mature = NULL, stock.mean.weight = NULL,
                            catch.mean.weight = NULL, dis.mean.weight = NULL,
                            land.mean.weight = NULL, natural.mortality = NULL,
                            prop.f = NULL, prop.m = NULL, land.frac = NULL,
-                           recapture = NULL){
+                           recapture = NULL, wsc = NULL){
   if(!is.null(fleets))
     stop("samjr v1: 'fleets' (commercial fleets with effort) not supported")
   if(is.null(residual.fleet))
@@ -411,6 +421,15 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     land.frac <- matrix(1, nrow = nrow(residual.fleet), ncol = ncol(residual.fleet))
   if(is.null(prop.f))
     prop.f <- matrix(0, nrow = nrow(residual.fleet), ncol = ncol(residual.fleet))
+  if(!is.null(wsc)){
+    wsc <- as.matrix(wsc)[, 1, drop = FALSE]
+    wscYears <- if(is.null(rownames(wsc))) min(newyear) + seq_len(nrow(wsc)) - 1L
+                else as.integer(rownames(wsc))
+    wscAll <- min(newyear):max(c(newyear, wscYears))
+    wsc <- matrix(wsc[match(wscAll, wscYears), 1], ncol = 1,
+                  dimnames = list(as.character(wscAll),
+                                  if(is.null(colnames(wsc))) "1" else colnames(wsc)))
+  }
 
   nF <- length(type)
   idxCor <- matrix(NA_integer_, nrow = nF, ncol = length(newyear))
@@ -458,6 +477,7 @@ setup.sam.data <- function(fleets = NULL, surveys = NULL, residual.fleet = NULL,
     propF = cutY(prop.f),
     propM = cutY(prop.m)
   )
+  if(!is.null(wsc)) ret$wsc <- wsc
   attr(ret, "fleetNames") <- name
   class(ret) <- "sam_data"
   ret

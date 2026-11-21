@@ -63,6 +63,8 @@ reduce <- function(data, year = NULL, fleet = NULL, age = NULL, conf = NULL){
   data$disMeanWeight   <- cutMat(data$disMeanWeight)
   data$landMeanWeight  <- cutMat(data$landMeanWeight)
   data$landFrac        <- cutMat(data$landFrac)
+  if(!is.null(data$wsc))
+    data$wsc <- data$wsc[as.integer(rownames(data$wsc)) >= min(data$years), , drop = FALSE]
 
   data$aux[, "fleet"] <- match(data$aux[, "fleet"], suf)
   data$minAgePerFleet <- tapply(as.integer(data$aux[, "age"]),

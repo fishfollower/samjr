@@ -141,7 +141,12 @@ $R(\cdot)$ is one of:
 
 * `srmode = 0`: random walk, $R(\cdot) = \log N_{a_{\min},\,y-1}$;
 * `srmode = 1`: Ricker, $R(S) = \alpha + \log S - e^{\beta} S$;
-* `srmode = 2`: Beverton-Holt, $R(S) = \alpha + \log S - \log(1 + e^{\beta} S)$.
+* `srmode = 2`: Beverton-Holt, $R(S) = \alpha + \log S - \log(1 + e^{\beta} S)$;
+* `srmode = 62`: AR(1), $R(\cdot) = \mu + \rho(\log N_{a_{\min},\,y-1} - \mu)$, with the
+  first year drawn from the stationary distribution;
+* `srmode = 102`: AR(1) with a covariate in the mean,
+  $R(\cdot) = (1 - \rho)(\mu + \alpha\,\mathrm{wsc}_{y-1}) + \rho \log N_{a_{\min},\,y-1}$,
+  where `wsc` is read from an optional `wsc.dat` (or `setup.sam.data(wsc = )`).
 
 Process noise:
 
@@ -300,7 +305,9 @@ recursion as the fitted model: each cohort carries over as
 $N_{a,y} = N_{a-1,\,y-1}\,e^{-Z_{a-1,\,y-1}}$ (with the oldest age
 accumulating as a plus group), where $Z_{a,y} = F_{a,y} + M_{a,y}$. The
 fitted joint precision is used to draw initial state perturbations,
-recruitment is resampled from `rec.years`, and biology can be either
+recruitment is resampled from `rec.years` (or, with `useRproc = TRUE`,
+simulated from the fitted recruitment process for `srmode` 0, 62 and
+102), and biology can be either
 averaged over `ave.years` or sampled from the GMRF process models.
 
 `referencepoints` locates deterministic reference points on a biology

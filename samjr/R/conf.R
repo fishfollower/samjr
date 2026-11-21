@@ -45,7 +45,8 @@ setS <- function(x){
 ##' \item{\code{keyCorObs}}{matrix of integer indices for AR or IGAR
 ##' correlation parameters.}
 ##' \item{\code{stockRecruitmentModelCode}}{0 = random walk, 1 = Ricker,
-##' 2 = Beverton-Holt.}
+##' 2 = Beverton-Holt, 62 = AR(1), 102 = AR(1) with the \code{wsc} covariate
+##' in the mean.}
 ##' \item{\code{noScaledYears}, \code{keyScaledYears}, \code{keyParScaledYA}}{
 ##' optional catch-scaling configuration; see \code{\link{sam.fit}}.}
 ##' \item{\code{fbarRange}}{integer vector of length two giving the age range
@@ -223,7 +224,8 @@ confComments <- function(){
       "NA's indicate where correlation parameters can be specified (-1 where they cannot).",
       "Columns are pairs of neighbouring ages."),
     stockRecruitmentModelCode = c(
-      "Stock recruitment code (0 for plain random walk, 1 for Ricker, and 2 for Beverton-Holt).",
+      "Stock recruitment code (0 for plain random walk, 1 for Ricker, 2 for Beverton-Holt,",
+      "62 for AR(1) on log-recruitment, and 102 for AR(1) with the wsc covariate in the mean).",
       "Other stock-recruitment functions can be supplied via the logSRfun argument of sam.fit."),
     noScaledYears = "Number of years where catch scaling is applied.",
     keyScaledYears = "A vector of the years where catch scaling is applied.",

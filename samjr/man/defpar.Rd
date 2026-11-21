@@ -26,7 +26,9 @@ Builds a parameter list compatible with the samjr likelihood from a
 data object and a configuration. Most parameters are initialised to zero
 (in log-space); the catchabilities \code{logQ} are initialised to
 \eqn{-5} so that they act roughly multiplicatively on small abundance
-indices. Recruitment, F-process, and observation random effects are also
+indices. For recruitment codes 62 and 102 the AR(1) mean starts at the
+largest mean log catch-at-age, a lower bound on log-recruitment.
+Recruitment, F-process, and observation random effects are also
 included.
 }
 \details{

@@ -158,6 +158,17 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
       pred <- rickerpar[1] + log(ssbLag) - exp(rickerpar[2]) * ssbLag
     }else if(srmode == 2){
       pred <- bhpar[1] + log(ssbLag) - log(1.0 + exp(bhpar[2]) * ssbLag)
+    }else if(srmode == 62){
+      ar1Mu <- ar1par[1]
+      ar1Rho <- 2 * plogis(ar1par[2]) - 1
+      pred <- ar1Mu + ar1Rho * (logN[yIdx - 1, 1] - ar1Mu)
+      jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
+    }else if(srmode == 102){
+      ar1Mu <- ar1par[1]
+      ar1Rho <- 2 * plogis(ar1par[2]) - 1
+      ar1Alpha <- ar1par[3]
+      pred <- (1 - ar1Rho) * (ar1Mu + ar1Alpha * wsc[yIdx - 1]) + ar1Rho * logN[yIdx - 1, 1]
+      jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
     }else{
       stop(paste("srmode", srmode, "not implemented"))
     }
