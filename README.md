@@ -145,7 +145,7 @@ $R(\cdot)$ is one of:
 * `srmode = 62`: AR(1), $R(\cdot) = \mu + \rho(\log N_{a_{\min},\,y-1} - \mu)$, with the
   first year drawn from the stationary distribution;
 * `srmode = 102`: AR(1) with a covariate in the mean,
-  $R(\cdot) = (1 - \rho)(\mu + \alpha\,\mathrm{wsc}_{y-1}) + \rho \log N_{a_{\min},\,y-1}$,
+  $`R(\cdot) = (1 - \rho)(\mu + \alpha\,\mathrm{wsc}_{y-1}) + \rho \log N_{a_{\min},\,y-1}`$,
   where `wsc` is read from an optional `wsc.dat` (or `setup.sam.data(wsc = )`);
 * a user-supplied function: `sam.fit(..., logSRfun = function(S, pv) ...,
   logSRinit = )` sets $R(S)$ = `logSRfun(S, pv)` and overrides `srmode`.
@@ -212,7 +212,7 @@ The covariance factorises as $\Sigma_{f,y} = D_{f,y} R_{f,y} D_{f,y}$,
 with correlation $R_{f,y}$ (independent, IGAR-distance, or unstructured
 per fleet via `conf$obsCorStruct`) and a per-observation standard
 deviation on the diagonal. The SD defaults to
-$\exp([\texttt{logSdLogObs}]_{\texttt{keyVarObs}})$ but, as in SAM, can be
+$`\exp([\texttt{logSdLogObs}]_{\texttt{keyVarObs}})`$ but, as in SAM, can be
 overridden per observation by a supplied weight (`conf$fixVarToWeight`,
 from a `weight`/`cov`/`cov-weight` attribute), an extra-SD factor
 (`conf$keyXtraSd`), or a prediction-variance link that grows the SD with

@@ -48,6 +48,7 @@ data: install
 
 readme: README.pdf
 
+# The Lua filter maps GitHub's ```math blocks and $`...`$ inline math to pandoc math.
 README.pdf: README.md
 	@tmp=$$(mktemp --suffix=.lua); \
 	 printf '%s\n' \
@@ -55,6 +56,10 @@ README.pdf: README.md
 	   '  if el.classes:includes("math") then' \
 	   '    return pandoc.Para({pandoc.Math("DisplayMath", el.text)})' \
 	   '  end' \
+	   'end' \
+	   'function Math(el)' \
+	   '  el.text = el.text:gsub("^`(.*)`$$", "%1")' \
+	   '  return el' \
 	   'end' > $$tmp; \
 	 pandoc $< --standalone --lua-filter=$$tmp \
 	           --pdf-engine=xelatex \
