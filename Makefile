@@ -27,6 +27,8 @@ help:
 	@echo "  check     build + R CMD check --as-cran on the tarball"
 	@echo "  data      rebuild $(PKG)/data/nscod*.rda from testmore/nscod"
 	@echo "  readme    rebuild README.pdf from README.md via pandoc + xelatex"
+	@echo "  testmore/hcrsam/hcrSAM.rds"
+	@echo "            rebuild the SAM hcr-rule snapshot (needs stockassessment)"
 	@echo "  testmore  run every testmore/<dir>/script.R and print OK / FAIL"
 	@echo "            (use 'make -j N testmore' to run in parallel)"
 	@echo "  clean     remove generated tarballs, check dirs, testmore artefacts"
@@ -71,6 +73,9 @@ README.pdf: README.md
 	           -V 'header-includes=\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}' \
 	           -o $@; \
 	 rc=$$?; rm -f $$tmp; exit $$rc
+
+testmore/hcrsam/hcrSAM.rds: testmore/hcrsam/build-hcrSAM.R
+	cd testmore/hcrsam && $(R) --slave --vanilla -f build-hcrSAM.R
 
 # ---------------------------------------------------------------------------
 # testmore: run every testmore/<dir>/script.R, print OK / FAIL per test, then

@@ -20,7 +20,7 @@ make -j N testmore
 
 from the repository root.
 
-## Current status: all 31 pass
+## Current status: all 33 pass
 
 As of 2026-11-21 (`make testmore`).
 
@@ -68,6 +68,19 @@ with SAM 0.12.0 output; `cis` checks the confidence intervals within a
 tolerance. `hcr` checks the trapezoidal rule against exact algebraic
 answers, and `hcr_plots` checks that the HCR plot methods run without
 error.
+
+`hcrsam` compares `hcrFun` with SAM's rule function (`C_hcrR`) on a grid
+of SSB values for four rule settings, including `Forigin > 0`. SAM's
+values come from the snapshot `hcrSAM.rds`; rebuild it with
+`make testmore/hcrsam/hcrSAM.rds` (needs stockassessment). Only the rule
+is compared, because SAM 0.12.0's `hcr()` projection stops with
+"Forecast type not implemented".
+
+`hcrcheck` checks the `hcr()` projection with recruitment noise switched
+off: at constant F it settles at the per-recruit SPR and YPR (nscod
+random-walk fit) and at the Ricker and Beverton-Holt equilibria (NEA
+saithe, data from `customsr`), and each year's Fbar equals
+`hcrFun(SSB)` under the rule.
 
 ### Custom recruitment
 
