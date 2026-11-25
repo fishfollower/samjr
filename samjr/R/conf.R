@@ -246,6 +246,7 @@ loadConf <- function(dat, file, patch = TRUE){
     if(is.null(idx)) return(template)
     if(is.character(template)){
       vals <- scan(textConnection(lin[idx]), what = "character", quiet = TRUE)
+      if(length(vals) == 0) vals = ""   # Necessary so that loadConf(saveConf(conf)) = conf
       return(vals)
     }
     if(is.factor(template)){
