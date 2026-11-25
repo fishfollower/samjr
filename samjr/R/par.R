@@ -117,7 +117,7 @@ defpar <- function(data, conf, spinoutyear = 10){
                                   ncol = length(dat$age))
   }
   #
-  if(conf$dsem_specification != ""){
+  if(!is.null(conf$dsem_specification) && (conf$dsem_specification != "")){
     # Pull out
     dsem_timeseries = dat$dsem_timeseries
     dsem_timeseries$logN1 = 0

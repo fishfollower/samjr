@@ -33,7 +33,6 @@
 #' \item{P_kk}{The matrix of interactions, i.e., one-headed arrows}
 #' \item{G_kk}{The matrix of exogenous covariance, i.e., two-headed arrows}
 #' }
-#' @export
 dsem_make_matrices <-
 function( beta_p,
           model,
@@ -245,7 +244,6 @@ function( sem,
 #' @return Tagged-list defining variables and direction for a specified path coefficient
 #'
 #' @param path text to parse
-#' @export
 parse_path <-
 function( path ){
   path.1 <- gsub("-", "", gsub(" ", "", path))
@@ -274,7 +272,6 @@ function( path ){
 #' @param model SEM model
 #'
 #' @return Tagged-list defining exogenous and endogenous variables
-#' @export
 classify_variables <-
 function( model ){
 
