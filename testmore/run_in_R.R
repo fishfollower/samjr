@@ -1,5 +1,6 @@
 
-#remotes::install_github("fishfollower/samjr/samjr@dsem")
+#remotes::install_github("fishfollower/samjr/samjr@dsem", force = TRUE)
+#devtools::install_local( R'(C:\Users\jtuth\Documents\GitHub\fishfollower\samjr\samjr)', force = TRUE)
 
 library(testthat)
 library(samjr)
@@ -16,11 +17,7 @@ runs_ok <- function(expr) {
 
 # tests/testthat/test-testmore.R
 dirs <- list.dirs("testmore", recursive = FALSE)
-#dirs = dirs[-(1:17)]
 
-# FAILS
-#perrecruit
-#reduced
 tests = data.frame(
   dirs = dirs,
   runs = rep(NA, length(dirs)),
@@ -29,6 +26,8 @@ tests = data.frame(
 
 for (i in seq_along(dirs)) {
   message("running ", dirs[i])
+
+  # Test that it runs
   tests$runs[i] = runs_ok(callr::r(
     function(dir){
       setwd(dir);
@@ -39,10 +38,11 @@ for (i in seq_along(dirs)) {
     stderr = file.path(dirs[i], "stdout.log")
   ))
 
+  # Test the value returned
   if( isTRUE(tests$runs[i]) ){
-    res_out = read_lines_nocr(file.path(dirs[i], "res.out"))
-    res_exp = read_lines_nocr(file.path(dirs[i], "res.EXP"))
-    tests$matches[i] = identical( res_out, res_exp )
+    out = read_lines_nocr(file.path(dirs[i], "res.out"))
+    exp = read_lines_nocr(file.path(dirs[i], "res.EXP"))
+    tests$matches[i] = identical( out, exp )
   }
 }
 

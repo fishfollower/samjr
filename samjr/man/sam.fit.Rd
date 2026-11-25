@@ -8,7 +8,7 @@ sam.fit(
   data,
   conf,
   parameters,
-  map = list(),
+  map = attr(par, "map"),
   rm.unidentified = FALSE,
   lower = NULL,
   upper = NULL,
