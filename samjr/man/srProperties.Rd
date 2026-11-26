@@ -8,7 +8,8 @@ srProperties(srCode)
 }
 \arguments{
 \item{srCode}{integer SR-model code (0 random walk, 1 Ricker,
-2 Beverton-Holt). Other codes are not supported.}
+2 Beverton-Holt, 62 AR(1), 102 AR(1) with \code{wsc}). Other codes are
+not supported.}
 }
 \value{
 list with components \code{name}, \code{hasEquilibrium},

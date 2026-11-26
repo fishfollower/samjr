@@ -1,10 +1,13 @@
 ## SR-model helpers for samref.
 ##
-## samjr supports three recruitment codes (likelihood.R):
-##   0  random walk        logR_y = logR_{y-1}
-##   1  Ricker             logR   = a + log(S) - exp(b) * S
-##   2  Beverton-Holt      logR   = a + log(S) - log(1 + exp(b) * S)
-## with rec parameters stored in fit$pl$rickerpar / fit$pl$bhpar of length 2.
+## samjr supports these recruitment codes (likelihood.R):
+##   0    random walk        logR_y = logR_{y-1}
+##   1    Ricker             logR   = a + log(S) - exp(b) * S
+##   2    Beverton-Holt      logR   = a + log(S) - log(1 + exp(b) * S)
+##   62   AR(1)              logR_y = mu + rho * (logR_{y-1} - mu)
+##   102  AR(1) + wsc        logR_y = (1 - rho) * (mu + alpha * wsc_{y-1}) + rho * logR_{y-1}
+## with SR parameters stored in fit$pl$rickerpar / fit$pl$bhpar of length 2.
+## Codes 0, 62 and 102 have no stock-recruitment relation.
 
 ##' Properties of a recruitment model
 ##'
@@ -13,7 +16,8 @@
 ##' a given SR model code.
 ##'
 ##' @param srCode integer SR-model code (0 random walk, 1 Ricker,
-##'   2 Beverton-Holt). Other codes are not supported.
+##'   2 Beverton-Holt, 62 AR(1), 102 AR(1) with \code{wsc}). Other codes are
+##'   not supported.
 ##' @return list with components \code{name}, \code{hasEquilibrium},
 ##'   \code{isCompensatory}, \code{hasFiniteMaxGradient}.
 ##' @examples
@@ -27,6 +31,11 @@ srProperties <- function(srCode){
                 hasEquilibrium = FALSE,
                 isCompensatory = FALSE,
                 hasFiniteMaxGradient = FALSE))
+  if(srCode %in% c(62L, 102L))
+    return(list(name = if(srCode == 62L) "AR(1)" else "AR(1) with wsc",
+                hasEquilibrium = FALSE,
+                isCompensatory = FALSE,
+                hasFiniteMaxGradient = FALSE))
   if(srCode == 1L)
     return(list(name = "Ricker",
                 hasEquilibrium = TRUE,
@@ -37,7 +46,7 @@ srProperties <- function(srCode){
                 hasEquilibrium = TRUE,
                 isCompensatory = TRUE,
                 hasFiniteMaxGradient = TRUE))
-  stop("srCode ", srCode, " not supported in samref (only 0, 1, 2)")
+  stop("srCode ", srCode, " not supported in samref (only 0, 1, 2, 62, 102)")
 }
 
 ##' Equilibrium log-SSB from a per-recruit SPR

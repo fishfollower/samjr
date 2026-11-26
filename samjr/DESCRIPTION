@@ -1,7 +1,7 @@
 Package: samjr
 Type: Package
 Title: Minimal RTMB Re-Implementation of SAM
-Version: 0.0.3
+Version: 0.1.1
 Authors@R: c(
     person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut", "cre")),
     person(c("Christoffer", "Moesgaard"), "Albertsen", email = "cmoe@aqua.dtu.dk", role = "aut"))

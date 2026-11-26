@@ -18,7 +18,7 @@ scalar F.
 Returns Fbar given SSB:
 \deqn{F(SSB) = F_{cap} \quad \text{if } SSB < B_{cap}}
 \deqn{F(SSB) = \min(F_t, \max(F_o,
-       (SSB - B_o)(F_t - F_o)/(B_{tr} - B_o)))
+       F_o + (SSB - B_o)(F_t - F_o)/(B_{tr} - B_o)))
        \quad \text{if } SSB \ge B_{cap}, B_{tr} \ne B_o}
 \deqn{F(SSB) = F_t \quad \text{if } SSB \ge B_{cap}, B_{tr} = B_o.}
 }

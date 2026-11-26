@@ -88,14 +88,17 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 ##' @keywords internal
 ##' @noRd
 makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
+  naObs <- is.na(dat$logobs)
+  # placeholder so OBS() sees a complete data vector; the values come from 'missing'
+  dat$logobs[naObs] <- 0
   function(par){
     getAll(par, dat)
     resFlag <- if(is.null(dat$resFlag)) 0L else as.integer(dat$resFlag)
     logobs <- OBS(logobs)
     osaMode <- inherits(logobs, "osa")
-    if(length(missing) > 0){
+    if(length(missing) > 0 && !osaMode){
       logobs <- AD(logobs)
-      logobs[is.na(logobs)] <- missing
+      logobs[naObs] <- missing
     }
     nobs <- length(logobs)
     nrow <- nrow(M)
@@ -112,8 +115,10 @@ makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
 
     jnll <- 0
     if(osaMode){
+      # wide priors (as in SAM) keep these identifiable while no data term is switched on
       jnll <- jnll - sum(dnorm(logN[1, ], 0, 10, log = TRUE))
       jnll <- jnll - sum(dnorm(logF[1, ], 0, 10, log = TRUE))
+      jnll <- jnll - sum(dnorm(missing, 0, 10, log = TRUE))
     }
 
     if(stockWeightModel >= 1){
@@ -186,6 +191,19 @@ makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
       Q_kk = Matrix::t(IminusRho_kk) %*% invV_kk %*% IminusRho_kk
       # Fine from here
       jnll = jnll - dgmrf( as.vector(x_tj), mu = as.vector(xhat_tj), Q = Q_kk, log = TRUE )
+    }else if(srmode == 62){
+      ar1Mu <- ar1par[1]
+      ar1Rho <- 2 * plogis(ar1par[2]) - 1
+      pred <- ar1Mu + ar1Rho * (logN[yIdx - 1, 1] - ar1Mu)
+      jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
+    }else if(srmode == 102){
+      ar1Mu <- ar1par[1]
+      ar1Rho <- 2 * plogis(ar1par[2]) - 1
+      ar1Alpha <- ar1par[3]
+      pred <- (1 - ar1Rho) * (ar1Mu + ar1Alpha * wsc[yIdx - 1]) + ar1Rho * logN[yIdx - 1, 1]
+      jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else{
       stop(paste("srmode", srmode, "not implemented"))
     }
@@ -245,13 +263,29 @@ makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
       }
       a <- aux[i, 3] - minAge + 1
       Z <- F[y, a] + M[y, a]
+      pg <- aux[i, 3] == maxAgePerFleet[ff]
       if(fleetTypes[ff] == 0){
-        logPred[i] <- logN[y, a] - log(Z) + log(-expm1(-Z)) + logFF[y, a]
+        if(!(pg & maxAgePlusGroup[ff])){
+          logPred[i] <- logN[y, a] - log(Z) + log(-expm1(-Z)) + logFF[y, a]
+        }else{
+          logPred[i] <- -Inf
+          for(aa in a: dim(M)[2]){
+            ZZ <- F[y, aa] + M[y, aa]
+            logPred[i] <- logspace_add(logPred[i],  logN[y, aa] - log(ZZ) + log(-expm1(-ZZ)) + logFF[y, aa])
+          }
+        }
         if(!is.na(scaleIdxByObs[i])){
           logPred[i] <- logPred[i] - logScale[scaleIdxByObs[i]]
         }
       }else if(fleetTypes[ff] == 2){
-        survPred <- logN[y, a] - Z * sampleTimes[ff]
+        if(!(pg & maxAgePlusGroup[ff])){
+          survPred <- logN[y, a] - Z * sampleTimes[ff]
+        }else{
+          survPred <- -Inf
+          for(aa in a: dim(M)[2]){
+            survPred <- logspace_add(survPred, logN[y, aa] - (F[y, aa] + M[y, aa]) * sampleTimes[ff])
+          } 
+        }
         if(!is.null(keyQpow) && !is.na(keyQpow[ff, a]) && keyQpow[ff, a] >= 1){
           survPred <- survPred * exp(logQpow[keyQpow[ff, a]])
         }
@@ -267,6 +301,12 @@ makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
       }
     }
 
+    predObs <- logPred
+    if(osaMode && length(missing) > 0){
+      # as in SAM, missing values enter like observations and are switched on by
+      # keep; with data 0 the term equals dnorm(missing, logPred, sd)
+      predObs[naObs] <- logPred[naObs] - missing
+    }
     Slist <- list()
     for(ff in unique(aux[, 2])){
       if(fleetTypes[ff] == 5) next
@@ -332,16 +372,16 @@ makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
           }
         }
         if(is.null(thisCor) && covType[ff] == 0){
-          jnll <- jnll - sum(dnorm(logobs[idx], logPred[idx], effSd, log = TRUE))
+          jnll <- jnll - sum(dnorm(logobs[idx], predObs[idx], effSd, log = TRUE))
         }else{
           Sigma <- outer(effSd, effSd) * R
-          jnll <- jnll - dmvnorm(logobs[idx], logPred[idx], Sigma, log = TRUE)
+          jnll <- jnll - dmvnorm(logobs[idx], predObs[idx], Sigma, log = TRUE)
         }
       }
     }
     if(any(isTag) && length(logitReleaseSurvival) > 0){
       maxAgeIdx <- length(age)
-      for(i in which(isTag)){
+      for(i in which(isTag & !(osaMode & naObs))){
         y     <- aux[i, 1] - minYear + 1
         a_raw <- aux[i, 3] - minAge + 1
         a     <- if(a_raw > maxAgeIdx) maxAgeIdx else a_raw

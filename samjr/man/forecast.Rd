@@ -26,6 +26,7 @@ forecast(fit, ...)
   useNMmodel = (fit$conf$mortalityModel >= 1),
   splitLD = FALSE,
   estimate = stats::median,
+  useRproc = FALSE,
   ...
 )
 }
@@ -55,16 +56,30 @@ length determines the forecast horizon.}
 \item{processNoiseF}{if \code{TRUE} add F-process noise from the fitted
 \code{logsdF} between forecast years.}
 
-\item{useSWmodel, useCWmodel}{use the smoothed stock/catch weights from
-the assessment model instead of the year-by-year averages.}
-
-\item{useMOmodel, useNMmodel}{currently must be \code{FALSE}; a
-helpful error is raised otherwise.}
+\item{useSWmodel, useCWmodel, useMOmodel, useNMmodel}{use the GMRF process
+model for stock weights, catch weights, maturity or natural mortality
+from the fit instead of the observations and \code{ave.years} averages.
+Each defaults to \code{TRUE} when the corresponding process
+(\code{conf$stockWeightModel}, \code{conf$catchWeightModel},
+\code{conf$matureModel}, \code{conf$mortalityModel}) is part of the fit,
+and setting it without that process is an error. The process is extended
+past the forecast horizon, and in stochastic runs each simulation draws
+its own trajectory from the fitted process.}
 
 \item{splitLD}{include landing/discard split columns in the table.}
 
 \item{estimate}{summary function applied per-year (default
 \code{\link[stats]{median}}).}
+
+\item{useRproc}{if \code{TRUE} (and not \code{deterministic}), forecast
+recruitment by simulating the fitted recruitment process instead of
+resampling \code{rec.years}. Implemented for
+\code{stockRecruitmentModelCode} 0 (random walk), 1 (Ricker), 2
+(Beverton-Holt), 62 (AR(1)) and 102 (AR(1) with \code{wsc} in the mean;
+needs \code{wsc} for every forecast year but the last). For Ricker and
+Beverton-Holt the recruitment in year \code{y} uses the simulated SSB in
+year \code{y - minAge}, or the estimated SSB when that year is before
+\code{year.base}; \code{minAge = 0} is not supported.}
 }
 \value{
 an object of class \code{samforecast} - a list of per-year
@@ -83,15 +98,16 @@ one of \code{fscale}, \code{fval}, \code{catchval} or \code{landval};
 biology (M, SW, MO, PF, PM, LF, LW) is averaged over \code{ave.years}
 (or taken from observations when present); recruitment is sampled
 (or averaged in \code{deterministic} mode) from the assessment-estimated
-recruits in \code{rec.years}.
+recruits in \code{rec.years}, or simulated from the fitted recruitment
+process with \code{useRproc}.
 }
 \details{
 Implemented options: \code{fscale}, \code{fval}, \code{catchval},
 \code{landval}; \code{deterministic}; \code{processNoiseF};
-\code{useSWmodel} (uses the GMRF-smoothed stock weights from the fit
-when \code{conf$stockWeightModel >= 1}); \code{useCWmodel} (likewise for
-catch weights). Out of scope: \code{useMOmodel} / \code{useNMmodel}
-(no maturity / mortality process model in samjr yet),
-\code{nextssb}, \code{cwF}, \code{customWeights}, \code{customSel},
-\code{overwriteSelYears}, multi-fleet, exact-match scenarios.
+\code{useRproc}; \code{useSWmodel}, \code{useCWmodel},
+\code{useMOmodel} and \code{useNMmodel} (use the GMRF process models
+for stock weights, catch weights, maturity and natural mortality from
+the fit). Out of scope: \code{nextssb}, \code{cwF},
+\code{customWeights}, \code{customSel}, \code{overwriteSelYears},
+multi-fleet, exact-match scenarios.
 }

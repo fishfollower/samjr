@@ -18,7 +18,8 @@ setup.sam.data(
   prop.m = NULL,
   land.frac = NULL,
   recapture = NULL,
-  dsem_timeseries = NULL
+  dsem_timeseries = NULL,
+  wsc = NULL
 )
 }
 \arguments{
@@ -47,6 +48,12 @@ setup.sam.data(
 \item{land.frac}{year-by-age landing fraction.}
 
 \item{recapture}{reserved for future use; must be \code{NULL}.}
+
+\item{wsc}{optional recruitment covariate (single-column matrix or vector)
+used by \code{stockRecruitmentModelCode} 102. Rows are aligned to the
+model years by year row names (or assumed to start at the first model
+year when there are none); years after the last model year are kept for
+forecasting.}
 }
 \value{
 a list of class \code{sam_data} containing fleet metadata
@@ -55,7 +62,8 @@ a list of class \code{sam_data} containing fleet metadata
 \code{idx1}, \code{idx2}, \code{nobs}), and the year-by-age biological
 inputs (\code{propMat}, \code{stockMeanWeight}, \code{catchMeanWeight},
 \code{natMor}, \code{landFrac}, \code{disMeanWeight},
-\code{landMeanWeight}, \code{propF}, \code{propM}).
+\code{landMeanWeight}, \code{propF}, \code{propM}), and \code{wsc} when
+supplied.
 }
 \description{
 Builds the data list consumed by \code{\link{sam.fit}}. The interface

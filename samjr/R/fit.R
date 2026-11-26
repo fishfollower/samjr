@@ -91,10 +91,18 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
   dat$MO <- data$propMat
   dat$PF <- data$propF
   dat$PM <- data$propM
+  dat$wsc <- data$wsc
   dat$CW <- data$catchMeanWeight
   ages <- dat$age
   dat$fbarIdx <- which(ages >= conf$fbarRange[1] & ages <= conf$fbarRange[2])
   dat$srmode   <- conf$stockRecruitmentModelCode
+  if(dat$srmode == 102){
+    nWsc <- length(dat$year) - 1L
+    if(is.null(dat$wsc))
+      stop("stockRecruitmentModelCode 102 needs the wsc covariate (wsc.dat or setup.sam.data(wsc = ))")
+    if(nrow(dat$wsc) < nWsc || anyNA(dat$wsc[seq_len(nWsc), 1]))
+      stop("wsc covariate is missing for some model years")
+  }
   dat$fcormode <- conf$corFlag[1]
   dat$keyF  <- conf$keyLogFsta[1, ] + 1
   dat$keyQ  <- conf$keyLogFpar + 1
@@ -102,6 +110,11 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
   dat$keySd <- conf$keyVarObs + 1
   dat$keySd[dat$keySd <= 0] <- NA
   dat$predVarObsLink <- if(is.null(conf$predVarObsLink)) NULL else conf$predVarObsLink + 1L
+  dat$maxAgePlusGroup <- conf$maxAgePlusGroup
+  dat$maxAgePerFleet <- data$maxAgePerFleet
+  if(length(dat$maxAgePlusGroup) ==1 & length(dat$maxAgePerFleet) > 1){
+    dat$maxAgePlusGroup  <- c(dat$maxAgePlusGroup,as.numeric(dat$maxAgePerFleet[-1]==max(dat$age)))
+  }
   nObsTot <- length(data$logobs)
   xtraSdIdxByObs <- rep(NA_integer_, nObsTot)
   if(!is.null(conf$keyXtraSd) && nrow(conf$keyXtraSd) > 0){
@@ -218,7 +231,8 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' \code{\link[stats]{nlminb}}.
 ##'
 ##' Supported features in v1: stock-recruitment modes 0 (random walk),
-##' 1 (Ricker) and 2 (Beverton-Holt), or a user-supplied recruitment
+##' 1 (Ricker), 2 (Beverton-Holt), 62 (AR(1)) and 102 (AR(1) with the
+##' \code{wsc} covariate in the mean), or a user-supplied recruitment
 ##' function via \code{logSRfun} / \code{logSRinit}; F-process correlation modes 0
 ##' (independent), 1 (compound symmetry) and 2 (AR(1)-like decay);
 ##' observation correlation structures \code{ID}, \code{IGAR} (single AR-style
@@ -260,7 +274,7 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' \code{pv} (the recruitment parameter vector), returning predicted
 ##' log-recruitment. When non-\code{NULL} it overrides the model selected by
 ##' \code{conf$stockRecruitmentModelCode}, and any conf-based \code{rickerpar}
-##' / \code{bhpar} are fixed (mapped out). Use only AD-compatible operations
+##' / \code{bhpar} / \code{ar1par} are fixed (mapped out). Use only AD-compatible operations
 ##' (\code{log}, \code{exp}, arithmetic, indexing) so RTMB can tape it.
 ##' Defaults to \code{NULL}.
 ##' @param logSRinit initial values for the parameter vector \code{pv} passed
@@ -307,7 +321,7 @@ sam.fit <- function(data, conf, parameters, map = attr(par,"map"),
     if(!is.function(logSRfun)) stop("logSRfun must be a function of (S, pv)")
     if(is.null(logSRinit)) stop("logSRinit must be supplied when logSRfun is set")
     parameters$logSRpar <- as.numeric(logSRinit)
-    for(nm in c("rickerpar", "bhpar")){
+    for(nm in c("rickerpar", "bhpar", "ar1par")){
       if(length(parameters[[nm]]) > 0 && is.null(map[[nm]]))
         map[[nm]] <- factor(rep(NA, length(parameters[[nm]])))
     }

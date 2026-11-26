@@ -45,7 +45,8 @@ setS <- function(x){
 ##' \item{\code{keyCorObs}}{matrix of integer indices for AR or IGAR
 ##' correlation parameters.}
 ##' \item{\code{stockRecruitmentModelCode}}{0 = random walk, 1 = Ricker,
-##' 2 = Beverton-Holt.}
+##' 2 = Beverton-Holt, 62 = AR(1), 102 = AR(1) with the \code{wsc} covariate
+##' in the mean.}
 ##' \item{\code{noScaledYears}, \code{keyScaledYears}, \code{keyParScaledYA}}{
 ##' optional catch-scaling configuration; see \code{\link{sam.fit}}.}
 ##' \item{\code{fbarRange}}{integer vector of length two giving the age range
@@ -164,53 +165,227 @@ defcon <- function(dat, level = 1){
   ret
 }
 
+##' Internal: description written above each key by \code{saveConf}.
+##' One element per comment line.
+##' @keywords internal
+##' @noRd
+confComments <- function(){
+  list(
+    minAge = "The minimum age class in the assessment",
+    maxAge = "The maximum age class in the assessment",
+    maxAgePlusGroup = c(
+      "Is last age group considered a plus group for each fleet (1 yes, or 0 no).",
+      "If a single value is given it applies to the first fleet, and the other fleets",
+      "are treated as plus groups when their last age equals maxAge."),
+    keyLogFsta = c(
+      "Coupling of the fishing mortality states processes for each age (only the",
+      "first row (= fleet) is used).",
+      "Sequential numbers indicate that the fishing mortality is estimated individually",
+      "for those ages; if the same number is used for two or more ages, F is bound for",
+      "those ages (assumed to be the same). Binding fully selected ages will result in a",
+      "flat selection pattern for those ages."),
+    corFlag = c(
+      "Correlation of fishing mortality across ages (0 independent, 1 compound symmetry,",
+      "or 2 AR(1)). Only the first value is used.",
+      "0: independent means there is no correlation between F across age.",
+      "1: compound symmetry means that all ages are equally correlated.",
+      "2: AR(1) first order autoregressive - similar ages are more highly correlated than",
+      "ages that are further apart, so similar ages have similar F patterns over time.",
+      "If the estimated correlation is high, then the F pattern over time for each age",
+      "varies in a similar way. E.g. if almost one, then they are parallel (like a",
+      "separable model) and if almost zero then they are independent."),
+    keyLogFpar = c(
+      "Coupling of the survey catchability parameters (normally the first row is",
+      "not used, as that is covered by fishing mortality).",
+      "For an SSB index fleet only the first column is used."),
+    keyQpow = c(
+      "Density dependent catchability power parameters (if any).",
+      "For coupled ages the index is modelled as Q * N^b (N at the survey time),",
+      "where log(b) is estimated. -1 means b = 1."),
+    keyVarF = c(
+      "Coupling of process variance parameters for log(F)-process (fishing mortality",
+      "normally applies to the first (fishing) fleet; therefore only the first row is used)."),
+    keyVarLogN = c(
+      "Coupling of the recruitment and survival process variance parameters for the",
+      "log(N)-process at the different ages.",
+      "Note: samjr currently ignores this key and always estimates one variance",
+      "parameter for recruitment (first age) and one shared by all older ages."),
+    keyVarObs = c(
+      "Coupling of the variance parameters for the observations.",
+      "First row refers to the coupling of the variance parameters for the catch data",
+      "observations by age.",
+      "Second and further rows refers to coupling of the variance parameters for the",
+      "index data observations by age."),
+    obsCorStruct = c(
+      "Covariance structure for each fleet (\"ID\" independent, \"AR\" AR(1), or \"US\" for unstructured).",
+      "\"AR\" is an irregular AR(1): the correlation between two ages is 0.5^d, where the",
+      "distance d is the sum of the estimated steps between neighbouring ages (see keyCorObs)."),
+    keyCorObs = c(
+      "Coupling of correlation parameters can only be specified if the AR(1) structure is chosen above.",
+      "NA's indicate where correlation parameters can be specified (-1 where they cannot).",
+      "Columns are pairs of neighbouring ages."),
+    stockRecruitmentModelCode = c(
+      "Stock recruitment code (0 for plain random walk, 1 for Ricker, 2 for Beverton-Holt,",
+      "62 for AR(1) on log-recruitment, and 102 for AR(1) with the wsc covariate in the mean).",
+      "Other stock-recruitment functions can be supplied via the logSRfun argument of sam.fit."),
+    noScaledYears = "Number of years where catch scaling is applied.",
+    keyScaledYears = "A vector of the years where catch scaling is applied.",
+    keyParScaledYA = c(
+      "A matrix specifying the couplings of scale parameters (nrow = no scaled years,",
+      "ncols = no ages)."),
+    fbarRange = "First and last age included in the calculation of average fishing mortality (Fbar).",
+    stockWeightModel = c(
+      "Integer code describing the treatment of stock weights in the model (0 use as known,",
+      "1 use as observations to inform stock weight process (GMRF with cohort and within",
+      "year correlations), 2 as 1 with extra correlation within the plus group)."),
+    keyStockWeightMean = "Coupling of stock-weight process mean parameters (not used if stockWeightModel==0).",
+    keyStockWeightObsVar = "Coupling of stock-weight observation variance parameters (not used if stockWeightModel==0).",
+    catchWeightModel = c(
+      "Integer code describing the treatment of catch weights in the model (0 use as known,",
+      "1 use as observations to inform catch weight process (GMRF with cohort and within",
+      "year correlations), 2 as 1 with extra correlation within the plus group)."),
+    keyCatchWeightMean = c(
+      "Coupling of catch-weight process mean parameters (not used if catchWeightModel==0).",
+      "Only the first row is used."),
+    keyCatchWeightObsVar = c(
+      "Coupling of catch-weight observation variance parameters (not used if catchWeightModel==0).",
+      "Only the first row is used."),
+    matureModel = c(
+      "Integer code describing the treatment of proportion mature in the model (0 use as known,",
+      "1 use as observations to inform proportion mature process (GMRF with cohort and within",
+      "year correlations on logit(proportion mature)), 2 as 1 with extra correlation within",
+      "the plus group)."),
+    keyMatureMean = "Coupling of mature process mean parameters (not used if matureModel==0).",
+    mortalityModel = c(
+      "Integer code describing the treatment of natural mortality in the model (0 use as known,",
+      "1 use as observations to inform natural mortality process (GMRF with cohort and within",
+      "year correlations), 2 as 1 with extra correlation within the plus group)."),
+    keyMortalityMean = "Coupling of natural mortality process mean parameters (not used if mortalityModel==0).",
+    keyMortalityObsVar = "Coupling of natural mortality observation variance parameters (not used if mortalityModel==0).",
+    predVarObsLink = c(
+      "Coupling of parameters used in a prediction-variance link for observations.",
+      "For linked cells the observation sd is sqrt(log(1 + exp(k))) with",
+      "k = log(sd) + (exp(p) - 1) * log(prediction). NA or -1 means no link."),
+    keyXtraSd = c(
+      "An integer matrix with 4 columns (fleet year age coupling), which allows additional",
+      "uncertainty to be estimated for the specified observations (their sd is multiplied",
+      "by exp(par))."),
+    fixVarToWeight = c(
+      "If weight attribute is supplied for observations this option sets the treatment",
+      "(0 relative weight, 1 fix variance to weight). One value per fleet (a single value",
+      "is recycled).")
+  )
+}
+
 ##' Save a samjr configuration to a SAM-style \code{.cfg} text file
 ##'
 ##' Writes a configuration list (as returned by \code{\link{defcon}} or
 ##' \code{\link{loadConf}}) to a text file in SAM's \code{$name} block
 ##' format, suitable for round-tripping back through \code{loadConf}.
+##' Each block is preceded by comment lines describing the option and its
+##' possible values. Matrices and age-indexed vectors get a comment line
+##' with the ages (or age pairs, or column names) above the columns, and
+##' rows of \code{keyParScaledYA} are labelled with their year.
 ##'
-##' @param x a configuration list.
+##' When \code{x} is a fitted \code{sam} object its configuration is saved,
+##' and the data are used to list the fleets in the file header and to
+##' label each row of the fleet matrices with the fleet name (as a trailing
+##' \code{#} comment, which \code{loadConf} ignores).
+##'
+##' @param x a configuration list, or a fitted \code{sam} object from
+##' \code{\link{sam.fit}}.
 ##' @param file output file path (or \code{""} for stdout).
 ##' @param overwrite if \code{FALSE} (default), refuse to overwrite an
 ##' existing file.
 ##' @return invisibly \code{NULL}.
 ##' @export
 saveConf <- function(x, file = "", overwrite = FALSE){
-  writeOne <- function(v, ...){
-    if(is.factor(v)){
-      cat(" | Possible values are:", paste0('\"', levels(v), '\"'), ...)
-      cat("\n", paste0('\"', v, '\"'), "\n", ...)
-    }else if(is.matrix(v)){
-      if(nrow(v) > 0){
-        cat(capture.output(prmatrix(v, rowlab = rep("", nrow(v)),
-                                     collab = rep("   ", ncol(v)))),
-            sep = "\n", ...)
-      }else cat("\n", ...)
-    }else{
-      cat("\n", v, "\n", ...)
-    }
-  }
   if(file != "" && file.exists(file) && !overwrite){
     cat("Notice: Did not overwrite existing file\n")
     return(invisible(NULL))
   }
-  app <- function() if(file != "") TRUE else FALSE
-  cat(paste0("# Configuration saved: ", date()), file = file)
-  cat("\n#\n# Where a matrix is specified rows correspond to fleets and columns to ages.\n",
-      file = file, append = TRUE)
-  cat("# Same number indicates same parameter used\n",
-      file = file, append = TRUE)
-  cat("# Numbers (integers) start from zero and must be consecutive\n",
-      file = file, append = TRUE)
-  cat("# Negative numbers indicate that the parameter is not included in the model\n#",
-      file = file, append = TRUE)
-  for(nm in names(x)){
-    cat("\n$", file = file, append = TRUE, sep = "")
-    cat(nm, file = file, append = TRUE)
-    cat("\n#", file = file, append = TRUE)
-    writeOne(x[[nm]], file = file, append = TRUE)
+  data <- NULL
+  if(inherits(x, "sam")){
+    data <- x$data
+    x <- x$conf
   }
+  fleetNames <- NULL
+  fleetLegend <- character(0)
+  if(!is.null(data)){
+    fleetTypes <- data$fleetTypes
+    nFleets <- length(fleetTypes)
+    fleetNames <- attr(data, "fleetNames")
+    fleetNames <- if(is.null(fleetNames)) paste("Fleet", seq_len(nFleets)) else trimws(fleetNames)
+    aMin <- data$minAgePerFleet
+    aMax <- data$maxAgePerFleet
+    ageStr <- ifelse(is.na(aMin) | aMin < 0, "no age", paste0("ages ", aMin, "-", aMax))
+    typeStr <- vapply(fleetTypes, fleetTypeName, character(1))
+    fleetLegend <- c("# Fleets (rows of the fleet matrices):",
+                     sprintf("# %3d  %s  %s, %s", seq_len(nFleets),
+                             formatC(fleetNames, width = -max(nchar(fleetNames))),
+                             typeStr, ageStr),
+                     "#")
+  }
+  txt <- confComments()
+  ages <- if(is.null(x$minAge) || is.null(x$maxAge)) integer(0) else x$minAge:x$maxAge
+  nAges <- length(ages)
+  ageVecKeys <- c("keyVarLogN", "keyStockWeightMean", "keyStockWeightObsVar",
+                  "keyMatureMean", "keyMortalityMean", "keyMortalityObsVar")
+  colLabels <- function(nm, v){
+    n <- if(is.matrix(v)) ncol(v) else length(v)
+    if(nm == "keyXtraSd" && n == 4) return(c("fleet", "year", "age", "coupling"))
+    if(nm == "keyCorObs" && n == nAges - 1)
+      return(paste(ages[-nAges], ages[-1], sep = "-"))
+    if(n > 0 && n == nAges && (is.matrix(v) || nm %in% ageVecKeys))
+      return(as.character(ages))
+    NULL
+  }
+  rowLabels <- function(nm, v){
+    if(!is.matrix(v) || nrow(v) == 0 || nm == "keyXtraSd") return(NULL)
+    if(nm == "keyParScaledYA")
+      return(if(nrow(v) == length(x$keyScaledYears)) as.character(x$keyScaledYears) else NULL)
+    if(is.null(fleetNames)) return(NULL)
+    catchNames <- fleetNames[fleetTypes == 0]
+    if(nm %in% c("keyCatchWeightMean", "keyCatchWeightObsVar") && nrow(v) == length(catchNames))
+      return(catchNames)
+    if(nrow(v) == nFleets) return(fleetNames)
+    NULL
+  }
+  formatValues <- function(v, lab, rowLab){
+    m <- if(is.matrix(v)) v else matrix(v, nrow = 1)
+    if(length(m) == 0) return("")
+    s <- matrix(as.character(m), nrow = nrow(m))
+    s[is.na(s)] <- "NA"
+    if(is.null(lab) && !is.matrix(v)) return(paste0(" ", paste(s, collapse = " ")))
+    w <- apply(rbind(nchar(s), if(is.null(lab)) NULL else nchar(lab)), 2, max) + 2
+    w <- pmax(w, 4)
+    padRow <- function(r) paste(sprintf("%*s", w, r), collapse = "")
+    rows <- apply(s, 1, padRow)
+    if(!is.null(rowLab)) rows <- paste0(rows, "  # ", rowLab)
+    if(is.null(lab)) return(rows)
+    c(paste0("#", substring(padRow(lab), 2)), rows)
+  }
+  out <- c(paste0("# Configuration saved: ", date()),
+           "#",
+           "# Where a matrix is specified rows correspond to fleets and columns to ages.",
+           "# Same number indicates same parameter used",
+           "# Numbers (integers) start from zero and must be consecutive",
+           "# Negative numbers indicate that the parameter is not included in the model",
+           "#",
+           fleetLegend)
+  for(nm in names(x)){
+    v <- x[[nm]]
+    out <- c(out, "", paste0("$", nm))
+    if(!is.null(txt[[nm]])) out <- c(out, paste("#", txt[[nm]]))
+    if(is.factor(v)){
+      out <- c(out,
+               paste("# Possible values are:", paste0('"', levels(v), '"', collapse = " ")),
+               paste0(" ", paste0('"', as.character(v), '"', collapse = " ")))
+    }else{
+      out <- c(out, formatValues(v, colLabels(nm, v), rowLabels(nm, v)))
+    }
+  }
+  cat(out, sep = "\n", file = file)
   invisible(NULL)
 }
 

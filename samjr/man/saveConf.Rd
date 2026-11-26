@@ -7,7 +7,8 @@
 saveConf(x, file = "", overwrite = FALSE)
 }
 \arguments{
-\item{x}{a configuration list.}
+\item{x}{a configuration list, or a fitted \code{sam} object from
+\code{\link{sam.fit}}.}
 
 \item{file}{output file path (or \code{""} for stdout).}
 
@@ -21,4 +22,14 @@ invisibly \code{NULL}.
 Writes a configuration list (as returned by \code{\link{defcon}} or
 \code{\link{loadConf}}) to a text file in SAM's \code{$name} block
 format, suitable for round-tripping back through \code{loadConf}.
+Each block is preceded by comment lines describing the option and its
+possible values. Matrices and age-indexed vectors get a comment line
+with the ages (or age pairs, or column names) above the columns, and
+rows of \code{keyParScaledYA} are labelled with their year.
+}
+\details{
+When \code{x} is a fitted \code{sam} object its configuration is saved,
+and the data are used to list the fleets in the file header and to
+label each row of the fleet matrices with the fleet name (as a trailing
+\code{#} comment, which \code{loadConf} ignores).
 }

@@ -135,6 +135,8 @@ write.data.files <- function(data, dir = ".", writeToOne = TRUE, ...){
   write.ices(data$propF,           "pf.dat", writeToOne = writeToOne, ...)
   write.ices(data$propM,           "pm.dat", writeToOne = writeToOne, ...)
   write.ices(data$natMor,          "nm.dat", writeToOne = writeToOne, ...)
+  if(!is.null(data$wsc))
+    write.ices(data$wsc,           "wsc.dat", writeToOne = writeToOne, ...)
   catchFleet <- which(data$fleetTypes == 0)[1]
   write.ices(getFleet(data, catchFleet), "cn.dat", writeToOne = writeToOne, ...)
   write.surveys(data, "survey.dat", ...)
