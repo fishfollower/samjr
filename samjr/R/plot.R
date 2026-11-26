@@ -292,6 +292,7 @@ addforecast <- function(fit, what, ...) UseMethod("addforecast")
 ##' @method addforecast samforecast
 ##' @keywords internal
 ##' @noRd
+##' @export
 addforecast.samforecast <- function(fit, what, dotcol = "black", dotpch = 19, dotcex = 1.5,
                                     intervalcol = gray(.5, alpha = .5), ...){
   tab <- attr(fit, "tab")
