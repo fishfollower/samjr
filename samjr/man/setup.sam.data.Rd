@@ -18,6 +18,7 @@ setup.sam.data(
   prop.m = NULL,
   land.frac = NULL,
   recapture = NULL,
+  dsem_timeseries = NULL,
   wsc = NULL
 )
 }

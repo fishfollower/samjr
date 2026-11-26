@@ -89,3 +89,4 @@ selectivityFromLogF <- function(fit, selYears){
   if(scale <= 0) stop("selectivityFromLogF: average F on fbarRange is zero")
   aveFa / scale
 }
+

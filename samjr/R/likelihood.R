@@ -87,7 +87,7 @@ ssbFun <- function(N, FF, M, SW, MO, PF, PM){
 ##'   logSRpar)} inside the AD tape.
 ##' @keywords internal
 ##' @noRd
-makeBabyLikelihood <- function(dat, logSRfun = NULL){
+makeBabyLikelihood <- function(dat, conf, logSRfun = NULL){
   naObs <- is.na(dat$logobs)
   # placeholder so OBS() sees a complete data vector; the values come from 'missing'
   dat$logobs[naObs] <- 0
@@ -152,27 +152,61 @@ makeBabyLikelihood <- function(dat, logSRfun = NULL){
     ssbLag <- ssb[pmax(yIdx - minAge, 1)]
     if(!is.null(logSRfun)){
       pred <- logSRfun(ssbLag, logSRpar)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 0){
       pred <- logN[yIdx - 1, 1]
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 1){
       pred <- rickerpar[1] + log(ssbLag) - exp(rickerpar[2]) * ssbLag
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 2){
       pred <- bhpar[1] + log(ssbLag) - log(1.0 + exp(bhpar[2]) * ssbLag)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
+    }else if(srmode == 3){
+      # Put into matrix
+      "[<-" <- ADoverload("[<-")
+      #browser()
+      x_tj[,'logN1'] = logN[,1]
+      #
+      xhat_tj = outer( rep(1,nrow(x_tj)), mu_j )
+      model = read_model(
+        sem = conf$dsem_specification,
+        times = seq_len(nrow(x_tj)),
+        variables = colnames(dsem_timeseries),
+        covs = colnames(x_tj),
+        quiet = FALSE
+      )
+      ram = dsem_make_matrices(
+        beta_p = beta_z,
+        model = model,
+        times = seq_len(nrow(x_tj)),
+        variables = colnames(x_tj)
+      )
+      Rho_kk = AD(ram$P_kk)
+      IminusRho_kk = Matrix::Diagonal(prod(dim(x_tj))) - Rho_kk
+      # Assemble variance
+      Gamma_kk = AD(ram$G_kk)
+      V_kk = Matrix::t(Gamma_kk) %*% Gamma_kk
+      invV_kk = Matrix::solve( V_kk )
+      Q_kk = Matrix::t(IminusRho_kk) %*% invV_kk %*% IminusRho_kk
+      # Fine from here
+      jnll = jnll - dgmrf( as.vector(x_tj), mu = as.vector(xhat_tj), Q = Q_kk, log = TRUE )
     }else if(srmode == 62){
       ar1Mu <- ar1par[1]
       ar1Rho <- 2 * plogis(ar1par[2]) - 1
       pred <- ar1Mu + ar1Rho * (logN[yIdx - 1, 1] - ar1Mu)
       jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else if(srmode == 102){
       ar1Mu <- ar1par[1]
       ar1Rho <- 2 * plogis(ar1par[2]) - 1
       ar1Alpha <- ar1par[3]
       pred <- (1 - ar1Rho) * (ar1Mu + ar1Alpha * wsc[yIdx - 1]) + ar1Rho * logN[yIdx - 1, 1]
       jnll <- jnll - dnorm(logN[1, 1], ar1Mu, sdR / sqrt(1 - ar1Rho^2), TRUE)
+      jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     }else{
       stop(paste("srmode", srmode, "not implemented"))
     }
-    jnll <- jnll - sum(dnorm(logN[yIdx, 1], pred, sdR, log = TRUE))
     if(resFlag == 1L){
       resN <- AD(matrix(0, nrow = ncol, ncol = nrow - 1L))
       resN[1, yIdx - 1L] <- (logN[yIdx, 1] - pred) / sdR

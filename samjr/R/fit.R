@@ -215,6 +215,10 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
     diag(Wp) <- -Matrix::rowSums(Wp)
     dat$Wc <- Wc; dat$Wd <- Wd; dat$Wp <- Wp
   }
+  # Add dsem stuff
+  #if(!is.null(data$tsdata)) dat$tsdata = data$tsdata
+  #if(!is.null(data$model)) dat$model = data$model
+  dat$dsem_timeseries = data$dsem_timeseries
   dat
 }
 
@@ -308,7 +312,7 @@ toBabyDat <- function(data, conf, spinoutyear = 10){
 ##' c(ricker = fitR$opt$objective, custom = fitC$opt$objective)
 ##' }
 ##' @export
-sam.fit <- function(data, conf, parameters, map = list(),
+sam.fit <- function(data, conf, parameters, map = attr(par,"map"),
                     rm.unidentified = FALSE, lower = NULL, upper = NULL,
                     newtonsteps = 3, run = TRUE, silent = FALSE,
                     convplot = FALSE, logSRfun = NULL, logSRinit = NULL, ...){
@@ -322,7 +326,7 @@ sam.fit <- function(data, conf, parameters, map = list(),
         map[[nm]] <- factor(rep(NA, length(parameters[[nm]])))
     }
   }
-  f <- makeBabyLikelihood(dat, logSRfun)
+  f <- makeBabyLikelihood(dat, conf, logSRfun)   # need to pass 'conf' for DSEM
   nmissing <- sum(is.na(dat$logobs))
   parameters$missing <- numeric(nmissing)
   randomVars <- c("logN", "logF", "missing")
@@ -330,6 +334,8 @@ sam.fit <- function(data, conf, parameters, map = list(),
   if(dat$catchWeightModel >= 1) randomVars <- c(randomVars, "logCW")
   if(dat$matureModel       >= 1) randomVars <- c(randomVars, "logitMO")
   if(dat$mortalityModel    >= 1) randomVars <- c(randomVars, "logNM")
+  if( "x_tj" %in% names(parameters)) randomVars <- c(randomVars, c("x_tj", "mu_j")) # to match SAM, using RW for recruitment with no penalty on first value
+  #browser()
   obj <- MakeADFun(f, parameters,
                    random = randomVars,
                    map = map,

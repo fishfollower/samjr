@@ -138,6 +138,7 @@ defcon <- function(dat, level = 1){
   }
 
   ret$stockRecruitmentModelCode <- 0
+  ret$dsem_specification = ""
   ret$noScaledYears <- 0
   ret$keyScaledYears <- numeric(0)
   ret$keyParScaledYA <- array(0, c(0, 0))
@@ -418,6 +419,11 @@ loadConf <- function(dat, file, patch = TRUE){
   readByType <- function(template, nam){
     idx <- getIdx(nam)
     if(is.null(idx)) return(template)
+    if(is.character(template)){
+      vals <- scan(textConnection(lin[idx]), what = "character", quiet = TRUE)
+      if(length(vals) == 0) vals = ""   # Necessary so that loadConf(saveConf(conf)) = conf
+      return(vals)
+    }
     if(is.factor(template)){
       vals <- scan(textConnection(lin[idx]), what = "character", quiet = TRUE)
       return(factor(vals, levels = levels(template)))

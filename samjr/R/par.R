@@ -27,6 +27,7 @@
 defpar <- function(data, conf, spinoutyear = 10){
   dat <- toBabyDat(data, conf, spinoutyear = spinoutyear)
   par <- list()
+  map = list()
   par$logSdLogN <- c(0, 0)
   par$logsdF <- numeric(max(dat$keyVarFperState))
   par$rickerpar <- if(dat$srmode == 1) c(1, 1) else numeric(0)
@@ -122,5 +123,28 @@ defpar <- function(data, conf, spinoutyear = 10){
     par$logNM          <- matrix(0, nrow = length(dat$year) + spinoutyear,
                                   ncol = length(dat$age))
   }
+  #
+  if(!is.null(conf$dsem_specification) && (conf$dsem_specification != "")){
+    # Pull out
+    dsem_timeseries = dat$dsem_timeseries
+    dsem_timeseries$logN1 = 0
+    dsem_timeseries = as.matrix(dsem_timeseries[,setdiff(colnames(dsem_timeseries),"Year")])
+    # Parse model
+    model = read_model(
+      sem = conf$dsem_specification,
+      times = as.numeric(dat$dsem_timeseries[,'Year']),
+      variables = colnames(dsem_timeseries),
+      covs = colnames(dsem_timeseries),
+      quiet = FALSE
+    )
+    par$beta_z = rep(1, max(model$parameter))
+    par$x_tj = ifelse( is.na(dsem_timeseries), rnorm(prod(dim(dsem_timeseries))), dsem_timeseries )
+    par$mu_j = rep(0, ncol(dsem_timeseries))
+    #
+    map$x_tj = factor( ifelse(is.na(par$x_tj), seq_len(prod(dim(par$x_tj))), NA) )
+    # Probably eliminate [1] instead of
+    map$logSdLogN = factor(c(NA, 2))
+  }
+  attr(par, "map") = map
   par
 }
