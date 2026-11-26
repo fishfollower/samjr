@@ -27,6 +27,7 @@ Authors:
 \itemize{
   \item Anders Nielsen \email{fishfollower@gmail.com}
   \item Christoffer Moesgaard Albertsen \email{cmoe@aqua.dtu.dk}
+  \item James Turner Thorson \email{jtuht@aqua.dtu.dk}
 }
 
 }

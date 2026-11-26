@@ -236,7 +236,7 @@ read.data.files <- function(dir = "."){
   lf <- read.ices("lf.dat")
   wsc <- if(file.exists("wsc.dat")) read.ices("wsc.dat") else NULL
   surveys <- read.ices("survey.dat")
-  dsem_timeseries <- read.csv( "dsem_timeseries.csv" )
+  dsem_timeseries <- if(file.exists("dsem_timeseries.csv")) read.csv( "dsem_timeseries.csv" ) else NULL
   setup.sam.data(surveys = surveys,
                  residual.fleet = cn,
                  prop.mature = mo,

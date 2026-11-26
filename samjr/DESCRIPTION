@@ -1,10 +1,11 @@
 Package: samjr
 Type: Package
 Title: Minimal RTMB Re-Implementation of SAM
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(
-    person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut", "cre")),
-    person(c("Christoffer", "Moesgaard"), "Albertsen", email = "cmoe@aqua.dtu.dk", role = "aut"))
+    person("Anders", "Nielsen", email = "fishfollower@gmail.com", role = c("aut","cre")),
+    person(c("Christoffer", "Moesgaard"), "Albertsen", email = "cmoe@aqua.dtu.dk", role = "aut"),
+    person(c("James", "Turner"), "Thorson", email = "jtuht@aqua.dtu.dk", role = "aut"))
 Description: Provides a small subset of the SAM stockassessment user interface
     (read.ices, setup.sam.data, defcon, defpar, sam.fit) backed by a pure-R
     RTMB implementation of the state-space age-structured assessment model.
